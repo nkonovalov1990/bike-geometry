@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Геометрия велосипедной рамы</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.12.17/paper-full.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+            background-color: #4380B4;
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+        }
+        .controls {
+            width: 250px;
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-y: auto;
+            max-height: calc(100vh - 40px); /* учитываем padding body */
+        }
+        .frame-display {
+            flex-grow: 1;
+            position: sticky;
+            top: 20px; /* соответствует padding body */
+            height: calc(100vh - 40px); /* учитываем padding body */
+        }
+        #bikeCanvas {
+            background: white;
+            border: 1px solid #ccc;
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            aspect-ratio: 2 / 1;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 5px;
+            font-family: Arial, sans-serif;
+        }
+        input, select {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .parameter-group {
+            margin-bottom: 24px;
+        }
+        h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+        .parameter-description {
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <div class="parameter-group">
+            <h3>Основные размеры</h3>
+            <div class="input-group">
+                <label for="stack">Stack (мм):</label>
+                <input type="number" id="stack" value="632">
+                <div class="parameter-description">Вертикальное расстояние от каретки до верха рулевой трубы</div>
+            </div>
+            <div class="input-group">
+                <label for="reach">Reach (мм):</label>
+                <input type="number" id="reach" value="417">
+                <div class="parameter-description">Горизонтальное расстояние от каретки до верха рулевой трубы</div>
+            </div>
+            <div class="input-group">
+                <label for="headTubeLength">Длина рулевой трубы (мм):</label>
+                <input type="number" id="headTubeLength" value="125">
+                <div class="parameter-description">Длина рулевой трубы без учета чашек, штока и проставок</div>
+            </div>
+            <div class="input-group">
+                <label for="headTubeAngle">Угол рулевой трубы (°):</label>
+                <input type="number" id="headTubeAngle" value="68" step="0.1">
+                <div class="parameter-description">Угол рулевой трубы относительно горизонтали. Меньше = более расслабленная геометрия</div>
+            </div>
+            <div class="input-group">
+                <label for="forkLength">Длина вилки (Axle-to-Crown) (мм):</label>
+                <input type="number" id="forkLength" value="500">
+                <div class="parameter-description">Расстояние от оси колеса до нижней точки рулевого стакана</div>
+            </div>
+            <div class="input-group">
+                <label for="seatTubeLength">Длина подседельной трубы (мм):</label>
+                <input type="number" id="seatTubeLength" value="460">
+                <div class="parameter-description">Длина подседельной трубы от центра каретки</div>
+            </div>
+            <div class="input-group">
+                <label for="seatTubeAngle">Угол подседельной трубы (°):</label>
+                <input type="number" id="seatTubeAngle" value="73" step="0.1">
+                <div class="parameter-description">Угол подседельной трубы относительно горизонтали, измеряется сзади трубы</div>
+            </div>
+        </div>
+
+        <div class="parameter-group">
+            <h3>Каретка</h3>
+            <div class="input-group">
+                <label for="bbHeight">Высота каретки (мм)</label>
+                <input type="number" id="bbHeight" value="265" min="0" max="500">
+            </div>
+            <div class="input-group">
+                <label for="bbDrop">Bottom Bracket Drop (мм)</label>
+                <input type="number" id="bbDrop" value="70" min="0" max="200">
+                <div class="parameter-description">
+                    Вертикальное расстояние от линии между осями колес до центра каретки
+                </div>
+            </div>
+        </div>
+
+        <div class="parameter-group">
+            <h3>Заднее колесо</h3>
+            <div class="input-group">
+                <label for="rearWheelSize">Размер колеса:</label>
+                <select id="rearWheelSize">
+                    <option value="12">12" (203 мм)</option>
+                    <option value="16">16" (305 мм)</option>
+                    <option value="20">20" (406 мм)</option>
+                    <option value="24">24" (507 мм)</option>
+                    <option value="26" selected>26" (559 мм)</option>
+                    <option value="27.5">27.5" (584 мм)</option>
+                    <option value="29">29" (622 мм)</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="rearTireWidth">Ширина покрышки (мм):</label>
+                <input type="number" id="rearTireWidth" value="50">
+            </div>
+        </div>
+
+        <div class="parameter-group">
+            <h3>Переднее колесо</h3>
+            <div class="input-group">
+                <label for="frontWheelSize">Размер колеса:</label>
+                <select id="frontWheelSize">
+                    <option value="12">12" (203 мм)</option>
+                    <option value="16">16" (305 мм)</option>
+                    <option value="20">20" (406 мм)</option>
+                    <option value="24">24" (507 мм)</option>
+                    <option value="26" selected>26" (559 мм)</option>
+                    <option value="27.5">27.5" (584 мм)</option>
+                    <option value="29">29" (622 мм)</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="frontTireWidth">Ширина покрышки (мм):</label>
+                <input type="number" id="frontTireWidth" value="50">
+            </div>
+        </div>
+
+        <div class="parameter-group">
+            <h3>Перья</h3>
+            <div class="input-group">
+                <label for="chainstayLength">Длина нижних перьев (мм):</label>
+                <input type="number" id="chainstayLength" value="425">
+            </div>
+        </div>
+    </div>
+    <div class="frame-display">
+        <canvas id="bikeCanvas" resize></canvas>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

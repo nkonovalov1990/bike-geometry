@@ -1,0 +1,9 @@
+.visualization-container {
+    height: 80vh;
+    min-height: 400px;
+}
+
+.parameters-container {
+    max-height: 80vh;
+    overflow-y: auto;
+} 
