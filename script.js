@@ -563,6 +563,55 @@ window.onload = function() {
             justification: 'left'
         });
         frameGroup.addChild(forkText);
+
+        // Добавляем размер от низа переднего колеса до земли
+        const frontWheelBottomPoint = new paper.Point(
+            frontWheelCenter.x,
+            frontWheelCenter.y + mmToPixels(frontWheelRadius, scale)
+        );
+
+        // Вертикальная размерная линия
+        const frontClearanceLine = new paper.Path.Line(
+            new paper.Point(frontWheelCenter.x + mmToPixels(60, scale), frontWheelBottomPoint.y),
+            new paper.Point(frontWheelCenter.x + mmToPixels(60, scale), offsetY)
+        );
+        frontClearanceLine.strokeColor = 'orange';
+        frontClearanceLine.strokeWidth = 1;
+        frontClearanceLine.dashArray = [4, 4];
+        frameGroup.addChild(frontClearanceLine);
+
+        // Засечки
+        const frontClearanceBottomTick = new paper.Path.Line(
+            new paper.Point(frontWheelCenter.x + mmToPixels(55, scale), offsetY),
+            new paper.Point(frontWheelCenter.x + mmToPixels(65, scale), offsetY)
+        );
+        frontClearanceBottomTick.strokeColor = 'orange';
+        frontClearanceBottomTick.strokeWidth = 1;
+        frameGroup.addChild(frontClearanceBottomTick);
+
+        const frontClearanceTopTick = new paper.Path.Line(
+            new paper.Point(frontWheelCenter.x + mmToPixels(55, scale), frontWheelBottomPoint.y),
+            new paper.Point(frontWheelCenter.x + mmToPixels(65, scale), frontWheelBottomPoint.y)
+        );
+        frontClearanceTopTick.strokeColor = 'orange';
+        frontClearanceTopTick.strokeWidth = 1;
+        frameGroup.addChild(frontClearanceTopTick);
+
+        // Текст с размером
+        const frontClearanceHeight = offsetY - frontWheelBottomPoint.y;
+        const frontClearanceMm = Math.round(frontClearanceHeight / scale);
+        const frontClearanceText = new paper.PointText({
+            point: new paper.Point(
+                frontWheelCenter.x + mmToPixels(70, scale),
+                (offsetY + frontWheelBottomPoint.y) / 2
+            ),
+            content: frontClearanceMm + ' мм',
+            fillColor: 'orange',
+            fontSize: 12,
+            fontFamily: 'Arial',
+            justification: 'left'
+        });
+        frameGroup.addChild(frontClearanceText);
     }
 
     // Добавляем слушатели событий для всех инпутов
