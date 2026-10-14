@@ -19,7 +19,7 @@ export function solve(base: Base, edit: { key: FieldKey; value: number }, locks:
   for (let iter = 0; iter <= 30; iter++) {
     const r = residual(b);
     if (!r.every(Number.isFinite)) return { ok: false, error: 'unreachable' };
-    if (r.every((v) => Math.abs(v) < 1e-9)) return isValid(b) ? { ok: true, base: b } : { ok: false, error: 'invalid' };
+    if (r.every((v) => Math.abs(v) < 1e-6)) return isValid(b) ? { ok: true, base: b } : { ok: false, error: 'invalid' };
     if (iter === 30) break; // final pass only checks the last step
     const J = r.map(() => vars.map(() => 0));
     vars.forEach((k, j) => {
