@@ -31,4 +31,17 @@ describe('url', () => {
     expect(decode('#rimFront=584').base.rimFront).toBe(584);
     expect(decode('#rimRear=600&rimFront=584').base).toEqual({ ...DEFAULTS, rimFront: 584 });
   });
+
+  it('round-trips the rider', () => {
+    const s: State = { base: { ...DEFAULTS }, locks: new Set<FieldKey>(), rider: { height: 183, inseam: 86.5 } };
+    expect(decode(encode(s))).toEqual(s);
+    expect(decode(encode({ ...s, rider: { height: 170 } })).rider).toEqual({ height: 170 });
+  });
+
+  it('invalid rider values are ignored', () => {
+    expect(decode('#h=abc&inseam=80').rider).toBeUndefined();
+    expect(decode('#h=300').rider).toBeUndefined();
+    expect(decode('#h=180&inseam=10').rider).toEqual({ height: 180 });
+    expect(decode('').rider).toBeUndefined();
+  });
 });
