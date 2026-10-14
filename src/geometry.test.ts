@@ -9,6 +9,7 @@ describe('derived', () => {
     expect(d.forkLength).toBeCloseTo(366.147, 2);
     expect(d.trail).toBeCloseTo(56.587, 2);
     expect(d.wheelbase).toBeCloseTo(985.844, 2);
+    expect(d.totalLength).toBeCloseTo(1663.844, 2);
     expect(d.frontCenter).toBeCloseTo(581.864, 2);
     expect(d.bbHeight).toBeCloseTo(269, 6);
     expect(d.effectiveTopTube).toBeCloseTo(550.880, 2);

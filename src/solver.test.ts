@@ -25,6 +25,11 @@ describe('solve', () => {
     expect(ok(solve(DEFAULTS, { key: 'reach', value: 400 }, locks()))).toEqual({ ...DEFAULTS, reach: 400 });
   });
 
+  it('total length edit reaches the target', () => {
+    const b = ok(solve(DEFAULTS, { key: 'totalLength', value: 1700 }, locks()));
+    expect(derived(b).totalLength).toBeCloseTo(1700, 6);
+  });
+
   it('derived edit reaches the target, unrelated params stay', () => {
     const b = ok(solve(DEFAULTS, { key: 'trail', value: 60 }, locks()));
     expect(derived(b).trail).toBeCloseTo(60, 6);

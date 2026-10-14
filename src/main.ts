@@ -9,18 +9,19 @@ const LABELS: Record<FieldKey, string> = {
   stack: 'Stack, мм',
   reach: 'Reach, мм',
   headAngle: 'Угол рулевой, °',
-  seatAngle: 'Угол подседельной (эфф.), °',
+  seatAngle: 'Угол подседельной, °',
   headTube: 'Длина рулевой, мм',
   chainstay: 'Перья, мм',
   bbDrop: 'BB drop, мм',
   forkOffset: 'Офсет вилки, мм',
-  lowerStack: 'Нижний стек колонки, мм',
+  lowerStack: 'Нижний стек, мм',
   seatTube: 'Подседельная, мм',
   rim: 'Обод (BSD), мм',
-  tire: 'Шина, мм',
+  tire: 'Ширина шины, мм',
   forkLength: 'Вилка ось–коронка, мм',
   trail: 'Trail, мм',
   wheelbase: 'Колёсная база, мм',
+  totalLength: 'Общая длина, мм',
   frontCenter: 'Front center, мм',
   bbHeight: 'Высота каретки, мм',
   effectiveTopTube: 'Эфф. верхняя труба, мм',
@@ -46,7 +47,7 @@ function group(title: string, keys: readonly FieldKey[]) {
     row.className = 'row';
     const help = HELP[key];
     const control = key === 'rim'
-      ? `<select id="f-rim" aria-describedby="tip-rim">${RIM_SIZES.map((r) => `<option value="${r.bsd}">${r.label} — ${r.bsd} мм</option>`).join('')}</select>`
+      ? `<select id="f-rim" aria-describedby="tip-rim">${RIM_SIZES.map((r) => `<option value="${r.bsd}">${r.label} (${r.bsd})</option>`).join('')}</select>`
       : `<input id="f-${key}" type="number" step="${ANGLE_KEYS.has(key) ? 0.1 : 1}" aria-describedby="tip-${key}">`;
     const typical = (Object.keys(TYPE_LABELS) as (keyof typeof TYPE_LABELS)[]).map((t) => `<li>${TYPE_LABELS[t]}: ${help.typical[t]}</li>`).join('');
     row.innerHTML = `<label for="f-${key}">${LABELS[key]}</label>
@@ -55,6 +56,14 @@ function group(title: string, keys: readonly FieldKey[]) {
       <p class="error" role="alert"></p>
       <div class="tip" role="tooltip" id="tip-${key}"><b>${help.what}</b>
         <p>↑ Больше: ${help.more}</p><p>↓ Меньше: ${help.less}</p><ul>${typical}</ul></div>`;
+    const tip = row.querySelector<HTMLElement>('.tip')!;
+    const flip = () => { // measure while shown; open above when there is no room below
+      tip.classList.add('measuring');
+      tip.classList.toggle('up', row.getBoundingClientRect().bottom + tip.offsetHeight > innerHeight);
+      tip.classList.remove('measuring');
+    };
+    row.querySelector('label')!.addEventListener('mouseenter', flip);
+    row.addEventListener('focusin', flip);
     const input = row.querySelector<HTMLInputElement | HTMLSelectElement>('#f-' + key)!;
     const lock = row.querySelector<HTMLInputElement>('.lock')!;
     const error = row.querySelector<HTMLElement>('.error')!;

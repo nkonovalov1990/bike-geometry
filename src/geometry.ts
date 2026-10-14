@@ -1,5 +1,5 @@
 export const BASE_KEYS = ['stack', 'reach', 'headAngle', 'seatAngle', 'headTube', 'chainstay', 'bbDrop', 'forkOffset', 'lowerStack', 'seatTube', 'rim', 'tire'] as const;
-export const DERIVED_KEYS = ['forkLength', 'trail', 'wheelbase', 'frontCenter', 'bbHeight', 'effectiveTopTube'] as const;
+export const DERIVED_KEYS = ['forkLength', 'trail', 'wheelbase', 'totalLength', 'frontCenter', 'bbHeight', 'effectiveTopTube'] as const;
 export type BaseKey = (typeof BASE_KEYS)[number];
 export type DerivedKey = (typeof DERIVED_KEYS)[number];
 export type FieldKey = BaseKey | DerivedKey;
@@ -21,8 +21,8 @@ export const RIM_SIZES: readonly { bsd: number; label: string }[] = [
   { bsd: 406, label: '20″' },
   { bsd: 507, label: '24″' },
   { bsd: 559, label: '26″' },
-  { bsd: 584, label: '27,5″ / 650b' },
-  { bsd: 622, label: '29″ / 28″ / 700c' },
+  { bsd: 584, label: '27,5″' },
+  { bsd: 622, label: '29″/700c' },
   { bsd: 686, label: '32″' },
 ];
 
@@ -65,6 +65,7 @@ export function derived(b: Base): Record<DerivedKey, number> {
     forkLength: axisToAxle(b) - b.headTube - b.lowerStack,
     trail: p.axisGround.x - p.frontAxle.x,
     wheelbase: p.frontAxle.x - p.rearAxle.x,
+    totalLength: p.frontAxle.x - p.rearAxle.x + 2 * p.wheelRadius,
     frontCenter: p.frontAxle.x,
     bbHeight: p.wheelRadius - b.bbDrop,
     effectiveTopTube: b.reach + b.stack / Math.tan(rad(b.seatAngle)),
