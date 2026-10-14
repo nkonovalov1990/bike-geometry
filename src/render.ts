@@ -28,7 +28,7 @@ export function render(svg: SVGSVGElement, b: Base): void {
   const R = p.wheelRadius;
   const stackX = Math.max(p.frontAxle.x + R, p.axisGround.x) + 50;
   const minX = p.rearAxle.x - R - PAD;
-  const maxX = Math.max(Math.max(p.frontAxle.x + R, p.axisGround.x) + PAD, stackX + 220);
+  const maxX = Math.max(Math.max(p.frontAxle.x + R, p.axisGround.x) + PAD, stackX + 320);
   const d = derived(b);
   const reachY = Math.max(p.htTop.y, p.seatTop.y) + 60;
   const top = Math.max(p.htTop.y, p.seatTop.y, p.frontAxle.y + R, reachY + 60) + PAD;
