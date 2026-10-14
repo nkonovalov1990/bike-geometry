@@ -15,6 +15,17 @@ export const DEFAULTS: Base = {
   bbDrop: 70, forkOffset: 45, lowerStack: 10, seatTube: 520, rim: 622, tire: 28,
 };
 
+// ISO bead seat diameters for common wheel sizes.
+export const RIM_SIZES: readonly { bsd: number; label: string }[] = [
+  { bsd: 305, label: '16″' },
+  { bsd: 406, label: '20″' },
+  { bsd: 507, label: '24″' },
+  { bsd: 559, label: '26″' },
+  { bsd: 584, label: '27,5″ / 650b' },
+  { bsd: 622, label: '29″ / 28″ / 700c' },
+  { bsd: 686, label: '32″' },
+];
+
 export const isBaseKey = (k: string): k is BaseKey => (BASE_KEYS as readonly string[]).includes(k);
 export const isFieldKey = (k: string): k is FieldKey => isBaseKey(k) || (DERIVED_KEYS as readonly string[]).includes(k);
 

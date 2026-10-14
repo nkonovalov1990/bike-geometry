@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULTS, derived, field, isValid, points, type Base } from './geometry';
+import { DEFAULTS, RIM_SIZES, derived, field, isValid, points, type Base } from './geometry';
 
 const rad = (d: number) => (d * Math.PI) / 180;
 
@@ -60,4 +60,10 @@ describe('isValid', () => {
     ['negative fork length', { stack: 200 }],
     ['bb below ground', { bbDrop: 400 }],
   ])('rejects %s', (_, patch) => expect(isValid({ ...DEFAULTS, ...patch })).toBe(false));
+});
+
+describe('RIM_SIZES', () => {
+  it.each(RIM_SIZES)('$label ($bsd) is valid', ({ bsd }) => {
+    expect(isValid({ ...DEFAULTS, rim: bsd })).toBe(true);
+  });
 });

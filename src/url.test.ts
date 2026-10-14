@@ -25,4 +25,9 @@ describe('url', () => {
   it('unknown lock keys are ignored', () => {
     expect(decode('#lock=trail,bogus,').locks).toEqual(new Set(['trail']));
   });
+
+  it('rim outside the listed sizes is ignored', () => {
+    expect(decode('#rim=600&reach=400').base).toEqual({ ...DEFAULTS, reach: 400 });
+    expect(decode('#rim=584').base.rim).toBe(584);
+  });
 });

@@ -40,9 +40,14 @@ body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 syste
 .fields { display: grid; gap: 12px; }
 fieldset { margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
 legend { font-weight: 600; padding: 0 4px; }
-.row { display: grid; grid-template-columns: 1fr 96px auto; gap: 4px 8px; align-items: center; padding: 3px 0; }
-.row input[type='number'] { width: 100%; padding: 4px 6px; font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; }
+.row { position: relative; display: grid; grid-template-columns: 1fr 96px auto; gap: 4px 8px; align-items: center; padding: 3px 0; }
+.row input[type='number'], .row select { width: 100%; padding: 4px 6px; font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; }
 .row input:disabled { opacity: 0.6; }
+.row label { cursor: help; }
+.tip { display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 10; padding: 8px; font-size: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); pointer-events: none; }
+.row label:hover ~ .tip, .row:focus-within .tip { display: block; }
+.tip p, .tip ul { margin: 4px 0 0; }
+.tip ul { padding: 0; list-style: none; color: var(--ink-2); }
 .error { grid-column: 1 / -1; margin: 0; color: var(--danger); font-size: 12px; }
 .error:empty { display: none; }
 .drawing { position: sticky; top: 16px; width: 100%; max-height: calc(100vh - 32px); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }

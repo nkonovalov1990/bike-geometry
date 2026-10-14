@@ -1,5 +1,6 @@
 import './style.css';
-import { ANGLE_KEYS, BASE_KEYS, DERIVED_KEYS, field, type FieldKey } from './geometry';
+import { ANGLE_KEYS, BASE_KEYS, DERIVED_KEYS, RIM_SIZES, field, type FieldKey } from './geometry';
+import { HELP, TYPE_LABELS } from './help';
 import { render } from './render';
 import { solve, type SolveError } from './solver';
 import { decode, encode } from './url';
@@ -35,7 +36,7 @@ const ERRORS: Record<SolveError | 'nan', string> = {
 const state = decode(location.hash);
 const form = document.querySelector<HTMLFormElement>('#fields')!;
 const svg = document.querySelector<SVGSVGElement>('#drawing')!;
-const rows = new Map<FieldKey, { input: HTMLInputElement; lock: HTMLInputElement; error: HTMLElement }>();
+const rows = new Map<FieldKey, { input: HTMLInputElement | HTMLSelectElement; lock: HTMLInputElement; error: HTMLElement }>();
 
 function group(title: string, keys: readonly FieldKey[]) {
   const fs = document.createElement('fieldset');
@@ -43,14 +44,22 @@ function group(title: string, keys: readonly FieldKey[]) {
   for (const key of keys) {
     const row = document.createElement('div');
     row.className = 'row';
+    const help = HELP[key];
+    const control = key === 'rim'
+      ? `<select id="f-rim" aria-describedby="tip-rim">${RIM_SIZES.map((r) => `<option value="${r.bsd}">${r.label} — ${r.bsd} мм</option>`).join('')}</select>`
+      : `<input id="f-${key}" type="number" step="${ANGLE_KEYS.has(key) ? 0.1 : 1}" aria-describedby="tip-${key}">`;
+    const typical = (Object.keys(TYPE_LABELS) as (keyof typeof TYPE_LABELS)[]).map((t) => `<li>${TYPE_LABELS[t]}: ${help.typical[t]}</li>`).join('');
     row.innerHTML = `<label for="f-${key}">${LABELS[key]}</label>
-      <input id="f-${key}" type="number" step="${ANGLE_KEYS.has(key) ? 0.1 : 1}">
+      ${control}
       <input type="checkbox" class="lock" title="Закрепить" aria-label="Закрепить: ${LABELS[key]}">
-      <p class="error" role="alert"></p>`;
-    const [input, lock] = row.querySelectorAll('input');
+      <p class="error" role="alert"></p>
+      <div class="tip" role="tooltip" id="tip-${key}"><b>${help.what}</b>
+        <p>↑ Больше: ${help.more}</p><p>↓ Меньше: ${help.less}</p><ul>${typical}</ul></div>`;
+    const input = row.querySelector<HTMLInputElement | HTMLSelectElement>('#f-' + key)!;
+    const lock = row.querySelector<HTMLInputElement>('.lock')!;
     const error = row.querySelector<HTMLElement>('.error')!;
     rows.set(key, { input, lock, error });
-    input.addEventListener('change', () => edit(key, input.valueAsNumber));
+    input.addEventListener('change', () => edit(key, input instanceof HTMLSelectElement ? Number(input.value) : input.valueAsNumber));
     lock.addEventListener('change', () => {
       if (lock.checked) state.locks.add(key);
       else state.locks.delete(key);
@@ -72,7 +81,7 @@ function edit(key: FieldKey, value: number) {
 
 function update() {
   for (const [key, r] of rows) {
-    r.input.value = String(+field(state.base, key).toFixed(1));
+    r.input.value = String(+field(state.base, key).toFixed(1)); // select: rim is always a listed value
     r.input.disabled = state.locks.has(key);
     r.lock.checked = state.locks.has(key);
   }

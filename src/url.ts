@@ -1,4 +1,4 @@
-import { BASE_KEYS, DEFAULTS, isFieldKey, isValid, type Base, type FieldKey } from './geometry';
+import { BASE_KEYS, DEFAULTS, RIM_SIZES, isFieldKey, isValid, type Base, type FieldKey } from './geometry';
 
 export type State = { base: Base; locks: Set<FieldKey> };
 
@@ -16,7 +16,7 @@ export function decode(hash: string): State {
   for (const k of BASE_KEYS) {
     const raw = p.get(k)?.trim();
     const v = raw ? Number(raw) : NaN;
-    if (Number.isFinite(v)) base[k] = v;
+    if (Number.isFinite(v) && (k !== 'rim' || RIM_SIZES.some((r) => r.bsd === v))) base[k] = v;
   }
   const locks = new Set((p.get('lock') ?? '').split(',').filter(isFieldKey));
   return { base: isValid(base) ? base : { ...DEFAULTS }, locks };
