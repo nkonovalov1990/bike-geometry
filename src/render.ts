@@ -6,13 +6,14 @@ const f = (n: number) => n.toFixed(1);
 const line = (a: Pt, b: Pt, cls: string) => `<line class="${cls}" x1="${f(a.x)}" y1="${f(-a.y)}" x2="${f(b.x)}" y2="${f(-b.y)}"/>`;
 
 const num = (n: number) => n.toLocaleString('ru-RU', { maximumFractionDigits: 1 });
-const text = (at: Pt, s: string, anchor: string) => `<text x="${f(at.x)}" y="${f(-at.y)}" text-anchor="${anchor}">${s}</text>`;
+const text = (at: Pt, s: string, anchor: string, key = '') =>
+  `<text${key ? ` class="dim-label" data-key="${key}" tabindex="0"` : ''} x="${f(at.x)}" y="${f(-at.y)}" text-anchor="${anchor}">${s}</text>`;
 // Dimension line a→b with end ticks (perpendicular, ±12 mm) and a label.
-function dim(a: Pt, b: Pt, label: string, at: Pt, anchor = 'middle'): string {
+function dim(a: Pt, b: Pt, label: string, at: Pt, anchor: string, key: string): string {
   const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
   const n = { x: (-(b.y - a.y) / len) * 12, y: ((b.x - a.x) / len) * 12 };
   const tick = (p: Pt) => line({ x: p.x - n.x, y: p.y - n.y }, { x: p.x + n.x, y: p.y + n.y }, '');
-  return line(a, b, '') + tick(a) + tick(b) + text(at, label, anchor);
+  return line(a, b, '') + tick(a) + tick(b) + text(at, label, anchor, key);
 }
 // Arc around c from fromDeg to toDeg (degrees CCW from +x, geometry coords).
 function arc(c: Pt, r: number, fromDeg: number, toDeg: number): string {
@@ -60,14 +61,14 @@ export function render(svg: SVGSVGElement, b: Base): void {
     ext(p.bb, { x: 0, y: reachY }), ext(p.htTop, { x: p.htTop.x, y: reachY }), ext(p.htTop, { x: stackX + 12, y: p.htTop.y }),
     ext(p.rearAxle, { x: p.rearAxle.x, y: wbY }), ext(p.frontAxle, { x: p.frontAxle.x, y: wbY }),
     ext(rearEdge, { x: rearEdge.x, y: tlY }), ext(frontEdge, { x: frontEdge.x, y: tlY }),
-    dim({ x: stackX, y: 0 }, { x: stackX, y: b.stack }, `Stack ${num(b.stack)}`, { x: stackX + 20, y: b.stack / 2 }, 'start'),
-    dim({ x: 0, y: reachY }, { x: b.reach, y: reachY }, `Reach ${num(b.reach)}`, { x: b.reach / 2, y: reachY + 20 }),
-    arc(p.htTop, 90, 0, hta), text(polar(p.htTop, 125, hta / 2), `${num(b.headAngle)}°`, 'start'),
-    arc(p.bb, 110, 180, sta), text(polar(p.bb, 145, (180 + sta) / 2), `${num(b.seatAngle)}°`, 'end'),
-    text({ x: (p.axisGround.x + p.frontAxle.x) / 2, y: p.groundY - 35 }, `Trail ${num(d.trail)}`, 'middle'),
-    dim({ x: 40, y: p.groundY }, { x: 40, y: 0 }, `BB ${num(d.bbHeight)}`, { x: 60, y: p.groundY / 2 }, 'start'),
-    dim({ x: p.rearAxle.x, y: wbY }, { x: p.frontAxle.x, y: wbY }, `База ${num(d.wheelbase)}`, { x: d.wheelbase / 2 + p.rearAxle.x, y: wbY + 15 }),
-    dim({ x: rearEdge.x, y: tlY }, { x: frontEdge.x, y: tlY }, `Длина ${num(d.totalLength)}`, { x: (rearEdge.x + frontEdge.x) / 2, y: tlY + 15 }),
+    dim({ x: stackX, y: 0 }, { x: stackX, y: b.stack }, `Stack ${num(b.stack)}`, { x: stackX + 20, y: b.stack / 2 }, 'start', 'stack'),
+    dim({ x: 0, y: reachY }, { x: b.reach, y: reachY }, `Reach ${num(b.reach)}`, { x: b.reach / 2, y: reachY + 20 }, 'middle', 'reach'),
+    arc(p.htTop, 90, 0, hta), text(polar(p.htTop, 125, hta / 2), `${num(b.headAngle)}°`, 'start', 'headAngle'),
+    arc(p.bb, 110, 180, sta), text(polar(p.bb, 145, (180 + sta) / 2), `${num(b.seatAngle)}°`, 'end', 'seatAngle'),
+    text({ x: (p.axisGround.x + p.frontAxle.x) / 2, y: p.groundY - 35 }, `Trail ${num(d.trail)}`, 'middle', 'trail'),
+    dim({ x: 40, y: p.groundY }, { x: 40, y: 0 }, `BB ${num(d.bbHeight)}`, { x: 60, y: p.groundY / 2 }, 'start', 'bbHeight'),
+    dim({ x: p.rearAxle.x, y: wbY }, { x: p.frontAxle.x, y: wbY }, `База ${num(d.wheelbase)}`, { x: d.wheelbase / 2 + p.rearAxle.x, y: wbY + 15 }, 'middle', 'wheelbase'),
+    dim({ x: rearEdge.x, y: tlY }, { x: frontEdge.x, y: tlY }, `Длина ${num(d.totalLength)}`, { x: (rearEdge.x + frontEdge.x) / 2, y: tlY + 15 }, 'middle', 'totalLength'),
     '</g>',
   ].join('');
 }

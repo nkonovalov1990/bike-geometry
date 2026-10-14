@@ -30,3 +30,9 @@ export const HELP: Record<FieldKey, Help> = {
   bbHeight: h('Высота оси каретки над землёй.', 'Больше клиренс педалей.', 'Устойчивее, центр масс ниже.', '330–345', '265–275', '270–290', '270–290'),
   effectiveTopTube: h('Горизонталь от верха рулевой до линии подседельной на высоте stack.', 'Длиннее, растянутее посадка.', 'Компактнее посадка.', '600–630', '545–560', '560–580', '550–590'),
 };
+
+export function helpHtml(key: FieldKey): string {
+  const help = HELP[key];
+  const typical = (Object.keys(TYPE_LABELS) as (keyof typeof TYPE_LABELS)[]).map((t) => `<li>${TYPE_LABELS[t]}: ${help.typical[t]}</li>`).join('');
+  return `<b>${help.what}</b><p>↑ Больше: ${help.more}</p><p>↓ Меньше: ${help.less}</p><ul>${typical}</ul>`;
+}

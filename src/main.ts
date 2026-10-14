@@ -1,6 +1,6 @@
 import './style.css';
 import { ANGLE_KEYS, BASE_KEYS, DERIVED_KEYS, RIM_SIZES, field, type FieldKey } from './geometry';
-import { HELP, TYPE_LABELS } from './help';
+import { helpHtml } from './help';
 import { render } from './render';
 import { solve, type SolveError } from './solver';
 import { decode, encode } from './url';
@@ -45,17 +45,14 @@ function group(title: string, keys: readonly FieldKey[]) {
   for (const key of keys) {
     const row = document.createElement('div');
     row.className = 'row';
-    const help = HELP[key];
     const control = key === 'rim'
       ? `<select id="f-rim" aria-describedby="tip-rim">${RIM_SIZES.map((r) => `<option value="${r.bsd}">${r.label} (${r.bsd})</option>`).join('')}</select>`
       : `<input id="f-${key}" type="number" step="${ANGLE_KEYS.has(key) ? 0.1 : 1}" aria-describedby="tip-${key}">`;
-    const typical = (Object.keys(TYPE_LABELS) as (keyof typeof TYPE_LABELS)[]).map((t) => `<li>${TYPE_LABELS[t]}: ${help.typical[t]}</li>`).join('');
     row.innerHTML = `<label for="f-${key}">${LABELS[key]}</label>
       ${control}
       <input type="checkbox" class="lock" title="Закрепить" aria-label="Закрепить: ${LABELS[key]}">
       <p class="error" role="alert"></p>
-      <div class="tip" role="tooltip" id="tip-${key}"><b>${help.what}</b>
-        <p>↑ Больше: ${help.more}</p><p>↓ Меньше: ${help.less}</p><ul>${typical}</ul></div>`;
+      <div class="tip" role="tooltip" id="tip-${key}">${helpHtml(key)}</div>`;
     const tip = row.querySelector<HTMLElement>('.tip')!;
     const flip = () => { // measure while shown; open above when there is no room below
       tip.classList.add('measuring');
@@ -103,3 +100,28 @@ group('Производные', DERIVED_KEYS);
 form.addEventListener('submit', (e) => e.preventDefault());
 update();
 window.addEventListener('hashchange', () => location.reload());
+
+// One floating tooltip shared by the drawing's dimension labels.
+const svgTip = document.createElement('div');
+svgTip.id = 'svg-tip';
+svgTip.className = 'tip floating';
+svgTip.setAttribute('role', 'tooltip');
+document.body.append(svgTip);
+const hideSvgTip = () => svgTip.classList.remove('shown');
+const labelOf = (e: Event) => (e.target as Element).closest<SVGElement>('[data-key]');
+const showSvgTip = (e: Event) => {
+  const el = labelOf(e);
+  if (!el) return;
+  svgTip.innerHTML = helpHtml(el.dataset.key as FieldKey);
+  el.setAttribute('aria-describedby', 'svg-tip');
+  svgTip.classList.add('shown'); // shown first so offsetWidth/Height are real
+  const r = el.getBoundingClientRect();
+  const below = r.bottom + 8;
+  svgTip.style.top = `${below + svgTip.offsetHeight > innerHeight ? Math.max(8, r.top - 8 - svgTip.offsetHeight) : below}px`;
+  svgTip.style.left = `${Math.max(8, Math.min(r.left, innerWidth - svgTip.offsetWidth - 8))}px`;
+};
+svg.addEventListener('pointerover', showSvgTip);
+svg.addEventListener('focusin', showSvgTip);
+svg.addEventListener('pointerout', (e) => labelOf(e) && hideSvgTip());
+svg.addEventListener('focusout', (e) => labelOf(e) && hideSvgTip());
+addEventListener('scroll', hideSvgTip, { passive: true });
