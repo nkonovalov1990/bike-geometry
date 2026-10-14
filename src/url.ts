@@ -1,7 +1,7 @@
 import { BASE_KEYS, DEFAULTS, RIM_SIZES, isFieldKey, isValid, type Base, type FieldKey } from './geometry';
 import { riderFrom, type Rider } from './fit';
 
-export type State = { base: Base; locks: Set<FieldKey>; rider?: Rider };
+export type State = { base: Base; locks: Set<FieldKey>; rider?: Rider; view?: '3d' };
 
 // Full precision on purpose: rounding would make locked derived fields drift after reload.
 export function encode(s: State): string {
@@ -12,6 +12,7 @@ export function encode(s: State): string {
     p.set('h', String(s.rider.height));
     if (s.rider.inseam !== undefined) p.set('inseam', String(s.rider.inseam));
   }
+  if (s.view) p.set('view', s.view);
   return `#${p}`;
 }
 
@@ -28,5 +29,10 @@ export function decode(hash: string): State {
   }
   const locks = new Set((p.get('lock') ?? '').split(',').filter(isFieldKey));
   const rider = riderFrom(num('h'), num('inseam'));
-  return { base: isValid(base) ? base : { ...DEFAULTS }, locks, ...(rider && { rider }) };
+  return {
+    base: isValid(base) ? base : { ...DEFAULTS },
+    locks,
+    ...(rider && { rider }),
+    ...(p.get('view') === '3d' && { view: '3d' as const }),
+  };
 }

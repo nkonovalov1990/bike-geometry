@@ -44,4 +44,15 @@ describe('url', () => {
     expect(decode('#h=180&inseam=10').rider).toEqual({ height: 180 });
     expect(decode('').rider).toBeUndefined();
   });
+
+  it('round-trips the 3D view', () => {
+    const s: State = { base: { ...DEFAULTS }, locks: new Set<FieldKey>(), view: '3d' };
+    expect(encode(s)).toContain('view=3d');
+    expect(decode(encode(s))).toEqual(s);
+  });
+
+  it('unknown view falls back to the drawing', () => {
+    expect(decode('#view=4d').view).toBeUndefined();
+    expect(decode('').view).toBeUndefined();
+  });
 });
