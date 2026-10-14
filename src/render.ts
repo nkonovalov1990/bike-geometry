@@ -68,6 +68,8 @@ export function render(svg: SVGSVGElement, b: Base): void {
     text({ x: (p.axisGround.x + p.frontAxle.x) / 2, y: p.groundY - 35 }, `Trail ${num(d.trail)}`, 'middle', 'trail'),
     dim({ x: 40, y: p.groundY }, { x: 40, y: 0 }, `BB ${num(d.bbHeight)}`, { x: 60, y: p.groundY / 2 }, 'start', 'bbHeight'),
     ext(p.rearAxle, { x: p.rearAxle.x + 170, y: p.rearAxle.y }), arc(p.rearAxle, 130, 0, -d.chainstayAngle), (() => { const csAt = polar(p.rearAxle, 200, -d.chainstayAngle); return text({ x: csAt.x, y: csAt.y - 45 }, `${num(d.chainstayAngle)}°`, 'middle', 'chainstayAngle'); })(),
+    ext(p.seatTop, { x: p.seatTop.x + 170, y: p.seatTop.y }), arc(p.seatTop, 120, 0, d.topTubeAngle), (() => { const ttAt = polar(p.seatTop, 160, 0); return text({ x: ttAt.x, y: ttAt.y - 40 }, `${num(d.topTubeAngle)}°`, 'middle', 'topTubeAngle'); })(),
+    (() => { const mid = { x: (p.seatTop.x + p.htTop.x) / 2, y: (p.seatTop.y + p.htTop.y) / 2 }; return dim({ x: mid.x, y: p.groundY }, mid, `Standover ${num(d.standover)}`, { x: mid.x + 20, y: (p.groundY + mid.y) / 2 }, 'start', 'standover'); })(),
     dim({ x: p.rearAxle.x, y: wbY }, { x: p.frontAxle.x, y: wbY }, `База ${num(d.wheelbase)}`, { x: d.wheelbase / 2 + p.rearAxle.x, y: wbY + 15 }, 'middle', 'wheelbase'),
     dim({ x: rearEdge.x, y: tlY }, { x: frontEdge.x, y: tlY }, `Длина ${num(d.totalLength)}`, { x: (rearEdge.x + frontEdge.x) / 2, y: tlY + 15 }, 'middle', 'totalLength'),
     '</g>',

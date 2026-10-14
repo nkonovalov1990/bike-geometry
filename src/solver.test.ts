@@ -21,6 +21,15 @@ describe('solveLinear', () => {
 });
 
 describe('solve', () => {
+  it('top tube angle edit with stack, reach and seat angle locked changes only seat tube', () => {
+    const b = ok(solve(DEFAULTS, { key: 'topTubeAngle', value: 10 }, locks('stack', 'reach', 'seatAngle')));
+    expect(derived(b).topTubeAngle).toBeCloseTo(10, 5);
+    expect(b.stack).toBe(560);
+    expect(b.reach).toBe(385);
+    expect(b.seatAngle).toBe(73.5);
+    expect(b.seatTube).not.toBeCloseTo(520, 0);
+  });
+
   it('base edit without locks changes only that field', () => {
     expect(ok(solve(DEFAULTS, { key: 'reach', value: 400 }, locks()))).toEqual({ ...DEFAULTS, reach: 400 });
   });

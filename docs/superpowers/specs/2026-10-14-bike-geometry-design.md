@@ -35,7 +35,7 @@ Vite + TypeScript (strict) + Vitest. Рендер — чистый SVG, без U
 | `bbDrop` | BB drop | 70 | да |
 | `forkOffset` | Офсет вилки | 45 | да |
 | `lowerStack` | Нижний стек рулевой колонки | 10 | нет |
-| `seatTube` | Длина подседельной (ц–верх) | 520 | нет |
+| `seatTube` | Длина подседельной (ц–верх) | 520 | да |
 | `rim` | Посадочный диаметр обода (BSD) | 622 | нет |
 | `tire` | Ширина (≈высота) шины | 28 | нет |
 
@@ -58,9 +58,13 @@ Vite + TypeScript (strict) + Vitest. Рендер — чистый SVG, без U
 | `forkLength` | `t − headTube − lowerStack` (ось–коронка вдоль оси руления) |
 | `trail` | x пересечения оси руления с землёй − x передней оси |
 | `wheelbase` | `frontAxle.x − rearAxle.x` |
+| `totalLength` | `wheelbase + 2R` |
 | `frontCenter` | `frontAxle.x` (по горизонтали) |
 | `bbHeight` | `R − bbDrop` |
+| `chainstayAngle` | `asin(bbDrop / chainstay)`, ° |
 | `effectiveTopTube` | `reach + stack / tan STA` |
+| `topTubeAngle` | угол линии seatTop → htTop к горизонту, ° |
+| `standover` | (seatTop.y + htTop.y)/2 − groundY |
 
 ### Валидность
 
