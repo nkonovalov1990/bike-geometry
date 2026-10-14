@@ -86,6 +86,7 @@ function edit(key: FieldKey, value: number) {
 }
 
 function update() {
+  hideSvgTip(); // render() below drops the hovered/focused label without pointerout/focusout
   for (const [key, r] of rows) {
     r.input.value = String(+field(state.base, key).toFixed(1)); // select: rim is always a listed value
     r.input.disabled = state.locks.has(key);
@@ -98,7 +99,6 @@ function update() {
 group('Базовые', BASE_KEYS);
 group('Производные', DERIVED_KEYS);
 form.addEventListener('submit', (e) => e.preventDefault());
-update();
 window.addEventListener('hashchange', () => location.reload());
 
 // One floating tooltip shared by the drawing's dimension labels.
@@ -107,13 +107,23 @@ svgTip.id = 'svg-tip';
 svgTip.className = 'tip floating';
 svgTip.setAttribute('role', 'tooltip');
 document.body.append(svgTip);
-const hideSvgTip = () => svgTip.classList.remove('shown');
+let tipTarget: SVGElement | null = null;
+function hideSvgTip() {
+  tipTarget?.removeAttribute('aria-describedby');
+  tipTarget = null;
+  svgTip.classList.remove('shown');
+}
 const labelOf = (e: Event) => (e.target as Element).closest<SVGElement>('[data-key]');
 const showSvgTip = (e: Event) => {
   const el = labelOf(e);
   if (!el) return;
+  tipTarget?.removeAttribute('aria-describedby');
+  tipTarget = el;
   svgTip.innerHTML = helpHtml(el.dataset.key as FieldKey);
   el.setAttribute('aria-describedby', 'svg-tip');
+  placeSvgTip(el);
+};
+const placeSvgTip = (el: SVGElement) => {
   svgTip.classList.add('shown'); // shown first so offsetWidth/Height are real
   const r = el.getBoundingClientRect();
   const below = r.bottom + 8;
@@ -124,4 +134,6 @@ svg.addEventListener('pointerover', showSvgTip);
 svg.addEventListener('focusin', showSvgTip);
 svg.addEventListener('pointerout', (e) => labelOf(e) && hideSvgTip());
 svg.addEventListener('focusout', (e) => labelOf(e) && hideSvgTip());
-addEventListener('scroll', hideSvgTip, { passive: true });
+// Tabbing to an off-screen label scrolls it into view after focusin: follow it instead of hiding.
+addEventListener('scroll', () => (tipTarget && tipTarget === document.activeElement ? placeSvgTip(tipTarget) : hideSvgTip()), { passive: true });
+update(); // after the tooltip is set up: update() hides it
