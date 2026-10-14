@@ -33,4 +33,7 @@ describe('fit', () => {
     expect(riderFrom(90, 82)).toBeUndefined();
     expect(riderFrom(NaN, 82)).toBeUndefined();
   });
+  it('flags stack above the envelope for a short rider', () => {
+    expect(conflicts(DEFAULTS, { height: 100 }).get('stack')).toBe('Stack 560 — больше любой нормы для роста 100 см (≤ 426)');
+  });
 });

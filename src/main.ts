@@ -104,19 +104,20 @@ function update() {
     r.row.classList.toggle('warn', issues.has(key));
     r.tip.innerHTML = helpHtml(key, state.rider, issues.get(key));
   }
-  heightInput.value = state.rider ? String(state.rider.height) : '';
-  inseamInput.value = state.rider?.inseam !== undefined ? String(state.rider.inseam) : '';
   render(svg, state.base, new Set(issues.keys()));
   history.replaceState(null, '', encode(state));
 }
 
 const riderFs = document.createElement('fieldset');
+riderFs.className = 'rider';
 riderFs.innerHTML = `<legend>Райдер</legend>
   <div class="row"><label for="r-height">Рост, см</label><input id="r-height" type="number" step="1" min="100" max="230" placeholder="—"></div>
-  <div class="row"><label for="r-inseam">Длина ног, см</label><input id="r-inseam" type="number" step="0.5" min="40" max="120" placeholder="оценка"></div>`;
+  <div class="row"><label for="r-inseam">Длина ног по шву, см</label><input id="r-inseam" type="number" step="0.5" min="40" max="120" placeholder="оценка"></div>`;
 form.append(riderFs);
 const heightInput = riderFs.querySelector<HTMLInputElement>('#r-height')!;
 const inseamInput = riderFs.querySelector<HTMLInputElement>('#r-inseam')!;
+heightInput.value = state.rider ? String(state.rider.height) : '';
+inseamInput.value = state.rider?.inseam !== undefined ? String(state.rider.inseam) : '';
 for (const el of [heightInput, inseamInput]) el.addEventListener('change', () => {
   state.rider = riderFrom(heightInput.valueAsNumber, inseamInput.valueAsNumber);
   update();

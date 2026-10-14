@@ -7,7 +7,7 @@
   --frame: #2b5fd9;
   --accent: #e0662b;
   --danger: #c62828;
-  --warn: #b7791f;
+  --warn: #975a16;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -47,6 +47,7 @@ legend { font-weight: 600; padding: 0 4px; }
 .row input[type='number'], .row select { width: 100%; padding: 4px 6px; font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; }
 .row :disabled { opacity: 0.6; }
 .row label { cursor: help; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.rider label { cursor: auto; }
 .tip { display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 10; padding: 8px; font-size: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); pointer-events: none; }
 .row label:hover ~ .tip, .row:focus-within .tip { display: block; }
 .tip.up { top: auto; bottom: 100%; }
