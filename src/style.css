@@ -63,6 +63,7 @@ legend { font-weight: 600; padding: 0 4px; }
 .trail { stroke: var(--accent); stroke-width: 6; }
 @media (max-width: 760px) {
   .app { grid-template-columns: 1fr; }
+  .dim text { font-size: 48px; stroke-width: 8px; }
   .drawing { position: static; order: -1; }
 }
 

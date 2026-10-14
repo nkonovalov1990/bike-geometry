@@ -22,7 +22,7 @@ export const RIM_SIZES: readonly { bsd: number; label: string }[] = [
   { bsd: 507, label: '24″' },
   { bsd: 559, label: '26″' },
   { bsd: 584, label: '27,5″' },
-  { bsd: 622, label: '29″/700c' },
+  { bsd: 622, label: '29″' },
   { bsd: 686, label: '32″' },
 ];
 

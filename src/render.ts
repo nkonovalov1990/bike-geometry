@@ -25,7 +25,7 @@ const polar = (c: Pt, r: number, deg: number): Pt => ({ x: c.x + r * Math.cos((d
 export function render(svg: SVGSVGElement, b: Base): void {
   const p = points(b);
   const R = p.wheelRadius;
-  const stackX = p.htTop.x + 70;
+  const stackX = Math.max(p.frontAxle.x + R, p.axisGround.x) + 50;
   const minX = p.rearAxle.x - R - PAD;
   const maxX = Math.max(Math.max(p.frontAxle.x + R, p.axisGround.x) + PAD, stackX + 220);
   const d = derived(b);
@@ -65,7 +65,7 @@ export function render(svg: SVGSVGElement, b: Base): void {
     arc(p.htTop, 90, 0, hta), text(polar(p.htTop, 125, hta / 2), `${num(b.headAngle)}°`, 'start'),
     arc(p.bb, 110, 180, sta), text(polar(p.bb, 145, (180 + sta) / 2), `${num(b.seatAngle)}°`, 'end'),
     text({ x: (p.axisGround.x + p.frontAxle.x) / 2, y: p.groundY - 35 }, `Trail ${num(d.trail)}`, 'middle'),
-    dim({ x: 40, y: p.groundY }, { x: 40, y: 0 }, `BB ${num(d.bbHeight)}`, { x: 60, y: d.bbHeight / 2 }, 'start'),
+    dim({ x: 40, y: p.groundY }, { x: 40, y: 0 }, `BB ${num(d.bbHeight)}`, { x: 60, y: p.groundY / 2 }, 'start'),
     dim({ x: p.rearAxle.x, y: wbY }, { x: p.frontAxle.x, y: wbY }, `База ${num(d.wheelbase)}`, { x: d.wheelbase / 2 + p.rearAxle.x, y: wbY + 15 }),
     dim({ x: rearEdge.x, y: tlY }, { x: frontEdge.x, y: tlY }, `Длина ${num(d.totalLength)}`, { x: (rearEdge.x + frontEdge.x) / 2, y: tlY + 15 }),
     '</g>',
