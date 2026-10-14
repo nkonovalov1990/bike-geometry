@@ -42,7 +42,8 @@ fieldset { margin: 0; padding: 12px; border: 1px solid var(--line); border-radiu
 legend { font-weight: 600; padding: 0 4px; }
 .row { position: relative; display: grid; grid-template-columns: 1fr 96px auto; gap: 4px 8px; align-items: center; padding: 3px 0; }
 .row input[type='number'], .row select { width: 100%; padding: 4px 6px; font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; }
-.row input:disabled { opacity: 0.6; }
+.row :disabled { opacity: 0.6; }
+.row:has(select) { grid-template-columns: minmax(80px, 1fr) minmax(0, 210px) auto; }
 .row label { cursor: help; }
 .tip { display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 10; padding: 8px; font-size: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); pointer-events: none; }
 .row label:hover ~ .tip, .row:focus-within .tip { display: block; }
