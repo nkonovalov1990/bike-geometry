@@ -67,7 +67,7 @@ export function render(svg: SVGSVGElement, b: Base): void {
     arc(p.bb, 110, 180, sta), text(polar(p.bb, 145, (180 + sta) / 2), `${num(b.seatAngle)}°`, 'end', 'seatAngle'),
     text({ x: (p.axisGround.x + p.frontAxle.x) / 2, y: p.groundY - 35 }, `Trail ${num(d.trail)}`, 'middle', 'trail'),
     dim({ x: 40, y: p.groundY }, { x: 40, y: 0 }, `BB ${num(d.bbHeight)}`, { x: 60, y: p.groundY / 2 }, 'start', 'bbHeight'),
-    ext(p.rearAxle, { x: p.rearAxle.x + 170, y: p.rearAxle.y }), arc(p.rearAxle, 130, 0, -d.chainstayAngle), text(polar(p.rearAxle, 165, -d.chainstayAngle / 2), `${num(d.chainstayAngle)}°`, 'start', 'chainstayAngle'),
+    ext(p.rearAxle, { x: p.rearAxle.x + 170, y: p.rearAxle.y }), arc(p.rearAxle, 130, 0, -d.chainstayAngle), (() => { const csAt = polar(p.rearAxle, 200, -d.chainstayAngle); return text({ x: csAt.x, y: csAt.y - 45 }, `${num(d.chainstayAngle)}°`, 'middle', 'chainstayAngle'); })(),
     dim({ x: p.rearAxle.x, y: wbY }, { x: p.frontAxle.x, y: wbY }, `База ${num(d.wheelbase)}`, { x: d.wheelbase / 2 + p.rearAxle.x, y: wbY + 15 }, 'middle', 'wheelbase'),
     dim({ x: rearEdge.x, y: tlY }, { x: frontEdge.x, y: tlY }, `Длина ${num(d.totalLength)}`, { x: (rearEdge.x + frontEdge.x) / 2, y: tlY + 15 }, 'middle', 'totalLength'),
     '</g>',
