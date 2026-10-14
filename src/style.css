@@ -7,6 +7,7 @@
   --frame: #2b5fd9;
   --accent: #e0662b;
   --danger: #c62828;
+  --warn: #b7791f;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -19,6 +20,7 @@
     --frame: #6e9bff;
     --accent: #ff8a50;
     --danger: #ff6b6b;
+    --warn: #f6ad55;
     color-scheme: dark;
   }
 }
@@ -31,6 +33,7 @@
   --frame: #6e9bff;
   --accent: #ff8a50;
   --danger: #ff6b6b;
+  --warn: #f6ad55;
   color-scheme: dark;
 }
 
@@ -69,6 +72,11 @@ legend { font-weight: 600; padding: 0 4px; }
 .tip.floating.shown { display: block; }
 .dim-label { cursor: help; }
 .dim-label:hover, .dim-label:focus-visible { outline: none; fill: var(--accent); }
+.row.warn input, .row.warn select { border-color: var(--warn); box-shadow: 0 0 0 1px var(--warn); }
+.row.warn label::after { content: ' ⚠'; color: var(--warn); }
+.dim-label.warn { fill: var(--warn); }
+.tip .issue { color: var(--warn); font-weight: 600; margin: 0 0 4px; }
+.tip .for { color: var(--ink-2); }
 @media (max-width: 760px) {
   .app { grid-template-columns: 1fr; }
   .dim text { font-size: 48px; stroke-width: 8px; }

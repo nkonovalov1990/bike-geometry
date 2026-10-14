@@ -1,5 +1,6 @@
 import './style.css';
 import { ANGLE_KEYS, BASE_KEYS, DERIVED_KEYS, RIM_SIZES, field, type FieldKey } from './geometry';
+import { conflicts, riderFrom } from './fit';
 import { helpHtml } from './help';
 import { render } from './render';
 import { solve, type SolveError } from './solver';
@@ -42,8 +43,9 @@ const ERRORS: Record<SolveError | 'nan', string> = {
 const state = decode(location.hash);
 const form = document.querySelector<HTMLFormElement>('#fields')!;
 const svg = document.querySelector<SVGSVGElement>('#drawing')!;
-const rows = new Map<FieldKey, { input: HTMLInputElement | HTMLSelectElement; lock: HTMLInputElement; error: HTMLElement }>();
+const rows = new Map<FieldKey, { input: HTMLInputElement | HTMLSelectElement; lock: HTMLInputElement; error: HTMLElement; row: HTMLElement; tip: HTMLElement }>();
 
+let issues = new Map<FieldKey, string>();
 const RIM_KEYS = new Set<FieldKey>(['rimFront', 'rimRear']);
 
 function group(title: string, keys: readonly FieldKey[]) {
@@ -71,7 +73,7 @@ function group(title: string, keys: readonly FieldKey[]) {
     const input = row.querySelector<HTMLInputElement | HTMLSelectElement>('#f-' + key)!;
     const lock = row.querySelector<HTMLInputElement>('.lock')!;
     const error = row.querySelector<HTMLElement>('.error')!;
-    rows.set(key, { input, lock, error });
+    rows.set(key, { input, lock, error, row, tip });
     input.addEventListener('change', () => edit(key, input instanceof HTMLSelectElement ? Number(input.value) : input.valueAsNumber));
     lock.addEventListener('change', () => {
       if (lock.checked) state.locks.add(key);
@@ -93,16 +95,32 @@ function edit(key: FieldKey, value: number) {
 }
 
 function update() {
+  issues = state.rider ? conflicts(state.base, state.rider) : new Map();
   hideSvgTip(); // render() below drops the hovered/focused label without pointerout/focusout
   for (const [key, r] of rows) {
     r.input.value = String(+field(state.base, key).toFixed(1)); // select: rim is always a listed value
     r.input.disabled = state.locks.has(key);
     r.lock.checked = state.locks.has(key);
+    r.row.classList.toggle('warn', issues.has(key));
+    r.tip.innerHTML = helpHtml(key, state.rider, issues.get(key));
   }
-  render(svg, state.base);
+  heightInput.value = state.rider ? String(state.rider.height) : '';
+  inseamInput.value = state.rider?.inseam !== undefined ? String(state.rider.inseam) : '';
+  render(svg, state.base, new Set(issues.keys()));
   history.replaceState(null, '', encode(state));
 }
 
+const riderFs = document.createElement('fieldset');
+riderFs.innerHTML = `<legend>Райдер</legend>
+  <div class="row"><label for="r-height">Рост, см</label><input id="r-height" type="number" step="1" min="100" max="230" placeholder="—"></div>
+  <div class="row"><label for="r-inseam">Длина ног, см</label><input id="r-inseam" type="number" step="0.5" min="40" max="120" placeholder="оценка"></div>`;
+form.append(riderFs);
+const heightInput = riderFs.querySelector<HTMLInputElement>('#r-height')!;
+const inseamInput = riderFs.querySelector<HTMLInputElement>('#r-inseam')!;
+for (const el of [heightInput, inseamInput]) el.addEventListener('change', () => {
+  state.rider = riderFrom(heightInput.valueAsNumber, inseamInput.valueAsNumber);
+  update();
+});
 group('Базовые', BASE_KEYS);
 group('Производные', DERIVED_KEYS);
 form.addEventListener('submit', (e) => e.preventDefault());
@@ -126,7 +144,7 @@ const showSvgTip = (e: Event) => {
   if (!el) return;
   tipTarget?.removeAttribute('aria-describedby');
   tipTarget = el;
-  svgTip.innerHTML = helpHtml(el.dataset.key as FieldKey);
+  svgTip.innerHTML = helpHtml(el.dataset.key as FieldKey, state.rider, issues.get(el.dataset.key as FieldKey));
   el.setAttribute('aria-describedby', 'svg-tip');
   placeSvgTip(el);
 };

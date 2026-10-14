@@ -1,4 +1,4 @@
-import { derived, points, type Base, type Pt } from './geometry';
+import { derived, points, type Base, type FieldKey, type Pt } from './geometry';
 
 const PAD = 40;
 const f = (n: number) => n.toFixed(1);
@@ -23,7 +23,7 @@ function arc(c: Pt, r: number, fromDeg: number, toDeg: number): string {
 }
 const polar = (c: Pt, r: number, deg: number): Pt => ({ x: c.x + r * Math.cos((deg * Math.PI) / 180), y: c.y + r * Math.sin((deg * Math.PI) / 180) });
 
-export function render(svg: SVGSVGElement, b: Base): void {
+export function render(svg: SVGSVGElement, b: Base, warn: ReadonlySet<FieldKey> = new Set()): void {
   const p = points(b);
   const { frontRadius: Rf, rearRadius: Rr } = p;
   const stackX = Math.max(p.frontAxle.x + Rf, p.axisGround.x) + 50;
@@ -74,4 +74,5 @@ export function render(svg: SVGSVGElement, b: Base): void {
     dim({ x: rearEdge.x, y: tlY }, { x: frontEdge.x, y: tlY }, `Длина ${num(d.totalLength)}`, { x: (rearEdge.x + frontEdge.x) / 2, y: tlY + 15 }, 'middle', 'totalLength'),
     '</g>',
   ].join('');
+  for (const el of svg.querySelectorAll<SVGElement>('[data-key]')) el.classList.toggle('warn', warn.has(el.dataset.key as FieldKey));
 }
