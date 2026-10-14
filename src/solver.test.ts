@@ -75,8 +75,8 @@ describe('solve', () => {
   });
 
   it('non-solvable edit keeps locked trail', () => {
-    const b = ok(solve(DEFAULTS, { key: 'rim', value: 584 }, locks('trail')));
-    expect(b.rim).toBe(584);
+    const b = ok(solve(DEFAULTS, { key: 'rimFront', value: 584 }, locks('trail')));
+    expect(b.rimFront).toBe(584);
     expect(derived(b).trail).toBeCloseTo(T0.trail, 6);
     expect(b.forkOffset).not.toBeCloseTo(45, 1);
   });

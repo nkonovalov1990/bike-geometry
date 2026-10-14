@@ -25,28 +25,28 @@ const polar = (c: Pt, r: number, deg: number): Pt => ({ x: c.x + r * Math.cos((d
 
 export function render(svg: SVGSVGElement, b: Base): void {
   const p = points(b);
-  const R = p.wheelRadius;
-  const stackX = Math.max(p.frontAxle.x + R, p.axisGround.x) + 50;
-  const minX = p.rearAxle.x - R - PAD;
-  const maxX = Math.max(Math.max(p.frontAxle.x + R, p.axisGround.x) + PAD, stackX + 320);
+  const { frontRadius: Rf, rearRadius: Rr } = p;
+  const stackX = Math.max(p.frontAxle.x + Rf, p.axisGround.x) + 50;
+  const minX = p.rearAxle.x - Rr - PAD;
+  const maxX = Math.max(Math.max(p.frontAxle.x + Rf, p.axisGround.x) + PAD, stackX + 320);
   const d = derived(b);
   const reachY = Math.max(p.htTop.y, p.seatTop.y) + 60;
-  const top = Math.max(p.htTop.y, p.seatTop.y, p.frontAxle.y + R, reachY + 60) + PAD;
+  const top = Math.max(p.htTop.y, p.seatTop.y, p.frontAxle.y + Rf, reachY + 60) + PAD;
   const bottom = p.groundY - 200;
   svg.setAttribute('viewBox', `${f(minX)} ${f(-top)} ${f(maxX - minX)} ${f(top - bottom)}`);
   const ground = (x: number): Pt => ({ x, y: p.groundY });
-  const wheel = (c: Pt) => `<circle class="tire" cx="${f(c.x)}" cy="${f(-c.y)}" r="${f(b.rim / 2 + b.tire / 2)}" stroke-width="${b.tire}"/><circle class="rim" cx="${f(c.x)}" cy="${f(-c.y)}" r="${f(b.rim / 2)}"/>`;
+  const wheel = (c: Pt, rim: number, tire: number) => `<circle class="tire" cx="${f(c.x)}" cy="${f(-c.y)}" r="${f(rim / 2 + tire / 2)}" stroke-width="${tire}"/><circle class="rim" cx="${f(c.x)}" cy="${f(-c.y)}" r="${f(rim / 2)}"/>`;
   const ext = (a: Pt, c: Pt) => line(a, c, 'ext');
   const wbY = p.groundY - 70;
   const tlY = p.groundY - 150;
-  const rearEdge = { x: p.rearAxle.x - R, y: p.rearAxle.y };
-  const frontEdge = { x: p.frontAxle.x + R, y: p.frontAxle.y };
+  const rearEdge = { x: p.rearAxle.x - Rr, y: p.rearAxle.y };
+  const frontEdge = { x: p.frontAxle.x + Rf, y: p.frontAxle.y };
   const hta = -b.headAngle;
   const sta = 180 - b.seatAngle;
   svg.innerHTML = [
     line(ground(minX), ground(maxX), 'ground'),
-    wheel(p.rearAxle),
-    wheel(p.frontAxle),
+    wheel(p.rearAxle, b.rimRear, b.tireRear),
+    wheel(p.frontAxle, b.rimFront, b.tireFront),
     line(p.htTop, p.axisGround, 'axis'),
     line(p.axisGround, ground(p.frontAxle.x), 'trail'),
     line(p.rearAxle, p.bb, 'tube'),

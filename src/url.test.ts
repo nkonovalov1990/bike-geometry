@@ -15,7 +15,7 @@ describe('url', () => {
   });
 
   it('garbage values are ignored, valid ones applied', () => {
-    expect(decode('#stack=abc&reach=400&tire=').base).toEqual({ ...DEFAULTS, reach: 400 });
+    expect(decode('#stack=abc&reach=400&tireFront=').base).toEqual({ ...DEFAULTS, reach: 400 });
   });
 
   it('invalid geometry falls back to defaults entirely', () => {
@@ -27,7 +27,8 @@ describe('url', () => {
   });
 
   it('rim outside the listed sizes is ignored', () => {
-    expect(decode('#rim=600&reach=400').base).toEqual({ ...DEFAULTS, reach: 400 });
-    expect(decode('#rim=584').base.rim).toBe(584);
+    expect(decode('#rimFront=600&reach=400').base).toEqual({ ...DEFAULTS, reach: 400 });
+    expect(decode('#rimFront=584').base.rimFront).toBe(584);
+    expect(decode('#rimRear=600&rimFront=584').base).toEqual({ ...DEFAULTS, rimFront: 584 });
   });
 });

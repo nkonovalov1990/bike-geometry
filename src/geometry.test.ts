@@ -20,7 +20,7 @@ describe('derived', () => {
 
   it('agrees with the textbook trail formula', () => {
     const b: Base = { ...DEFAULTS, headAngle: 71, forkOffset: 50 };
-    const R = b.rim / 2 + b.tire;
+    const R = b.rimFront / 2 + b.tireFront;
     const a = rad(71);
     expect(derived(b).trail).toBeCloseTo((R * Math.cos(a) - 50) / Math.sin(a), 9);
   });
@@ -59,7 +59,7 @@ describe('isValid', () => {
     ['head angle above 90', { headAngle: 91 }],
     ['seat angle above 90', { seatAngle: 90.5 }],
     ['chainstay shorter than bb drop', { chainstay: 60 }],
-    ['zero tire', { tire: 0 }],
+    ['zero tire', { tireFront: 0 }],
     ['NaN stack', { stack: NaN }],
     ['negative fork length', { stack: 200 }],
     ['bb below ground', { bbDrop: 400 }],
@@ -68,6 +68,20 @@ describe('isValid', () => {
 
 describe('RIM_SIZES', () => {
   it.each(RIM_SIZES)('$label ($bsd) is valid', ({ bsd }) => {
-    expect(isValid({ ...DEFAULTS, rim: bsd })).toBe(true);
+    expect(isValid({ ...DEFAULTS, rimFront: bsd })).toBe(true);
+    expect(isValid({ ...DEFAULTS, rimRear: bsd })).toBe(true);
+  });
+});
+
+describe('separate wheels', () => {
+  it('mullet 29/27.5: front axle higher, BB lower, trail unchanged', () => {
+    const b = { ...DEFAULTS, rimRear: 584 };
+    const p = points(b), d = derived(b);
+    expect(p.frontAxle.y).toBeCloseTo(89, 9);
+    expect(p.rearAxle.y).toBe(70);
+    expect(d.bbHeight).toBeCloseTo(250, 9);
+    expect(d.trail).toBeCloseTo(derived(DEFAULTS).trail, 9);
+    expect(d.totalLength).toBeCloseTo(d.wheelbase + 339 + 320, 9);
+    expect(isValid(b)).toBe(true);
   });
 });

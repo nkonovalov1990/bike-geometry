@@ -16,8 +16,10 @@ const LABELS: Record<FieldKey, string> = {
   forkOffset: 'Офсет вилки, мм',
   lowerStack: 'Нижний стек, мм',
   seatTube: 'Подседельная, мм',
-  rim: 'Обод (BSD), мм',
-  tire: 'Ширина шины, мм',
+  rimFront: 'Обод передний, мм',
+  rimRear: 'Обод задний, мм',
+  tireFront: 'Шина передняя, мм',
+  tireRear: 'Шина задняя, мм',
   forkLength: 'Вилка ось–коронка, мм',
   trail: 'Trail, мм',
   wheelbase: 'Колёсная база, мм',
@@ -42,14 +44,16 @@ const form = document.querySelector<HTMLFormElement>('#fields')!;
 const svg = document.querySelector<SVGSVGElement>('#drawing')!;
 const rows = new Map<FieldKey, { input: HTMLInputElement | HTMLSelectElement; lock: HTMLInputElement; error: HTMLElement }>();
 
+const RIM_KEYS = new Set<FieldKey>(['rimFront', 'rimRear']);
+
 function group(title: string, keys: readonly FieldKey[]) {
   const fs = document.createElement('fieldset');
   fs.innerHTML = `<legend>${title}</legend>`;
   for (const key of keys) {
     const row = document.createElement('div');
     row.className = 'row';
-    const control = key === 'rim'
-      ? `<select id="f-rim" aria-describedby="tip-rim">${RIM_SIZES.map((r) => `<option value="${r.bsd}">${r.label} (${r.bsd})</option>`).join('')}</select>`
+    const control = RIM_KEYS.has(key)
+      ? `<select id="f-${key}" aria-describedby="tip-${key}">${RIM_SIZES.map((r) => `<option value="${r.bsd}">${r.label} (${r.bsd})</option>`).join('')}</select>`
       : `<input id="f-${key}" type="number" step="${ANGLE_KEYS.has(key) ? 0.1 : 1}" aria-describedby="tip-${key}">`;
     row.innerHTML = `<label for="f-${key}">${LABELS[key]}</label>
       ${control}

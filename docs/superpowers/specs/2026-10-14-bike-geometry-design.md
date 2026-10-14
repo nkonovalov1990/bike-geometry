@@ -11,7 +11,7 @@
 Успех: правка любого поля за <50 мс даёт согласованную геометрию, закреплённые поля не дрейфуют
 (точность 0.01 мм / 0.01°), ссылка восстанавливает ровно то же состояние.
 
-Вне скоупа: сравнение рам, посадка райдера, дюймы, библиотека пресетов, бэкенд, разные колёса спереди/сзади.
+Вне скоупа: сравнение рам, посадка райдера, дюймы, библиотека пресетов, бэкенд.
 
 ## Стек
 
@@ -36,8 +36,10 @@ Vite + TypeScript (strict) + Vitest. Рендер — чистый SVG, без U
 | `forkOffset` | Офсет вилки | 45 | да |
 | `lowerStack` | Нижний стек рулевой колонки | 10 | нет |
 | `seatTube` | Длина подседельной (ц–верх) | 520 | да |
-| `rim` | Посадочный диаметр обода (BSD) | 622 | нет |
-| `tire` | Ширина (≈высота) шины | 28 | нет |
+| `rimFront` | Посадочный диаметр переднего обода (BSD) | 622 | нет |
+| `rimRear` | Посадочный диаметр заднего обода (BSD) | 622 | нет |
+| `tireFront` | Ширина (≈высота) передней шины | 28 | нет |
+| `tireRear` | Ширина (≈высота) задней шины | 28 | нет |
 
 «Нет» — параметр меняется только прямым вводом, решатель его не трогает.
 
@@ -45,10 +47,10 @@ Vite + TypeScript (strict) + Vitest. Рендер — чистый SVG, без U
 
 - `htTop = (reach, stack)`; ось руления из `htTop` вниз-вперёд: `u = (cos HTA, −sin HTA)`.
 - `htBottom = htTop + headTube·u`.
-- Радиус колеса `R = rim/2 + tire`. Обе оси на высоте `y = bbDrop`. Земля `y = bbDrop − R`.
+- Радиусы колёс `Rf = rimFront/2 + tireFront`, `Rr = rimRear/2 + tireRear`. `bbDrop` измеряется от задней оси: задняя ось на `y = bbDrop`, передняя на `y = bbDrop + Rf − Rr`. Земля `y = bbDrop − Rr`.
 - `rearAxle = (−√(chainstay² − bbDrop²), bbDrop)`.
 - Перпендикуляр вперёд `n = (sin HTA, cos HTA)`. Передняя ось = `htTop + t·u + forkOffset·n`, где
-  `t = (stack + forkOffset·cos HTA − bbDrop) / sin HTA`.
+  `t = (stack + forkOffset·cos HTA − (bbDrop + Rf − Rr)) / sin HTA`.
 - `seatTop = seatTube·(−cos STA, sin STA)`.
 
 ### Производные (вычисляемые) поля
@@ -58,9 +60,9 @@ Vite + TypeScript (strict) + Vitest. Рендер — чистый SVG, без U
 | `forkLength` | `t − headTube − lowerStack` (ось–коронка вдоль оси руления) |
 | `trail` | x пересечения оси руления с землёй − x передней оси |
 | `wheelbase` | `frontAxle.x − rearAxle.x` |
-| `totalLength` | `wheelbase + 2R` |
+| `totalLength` | `frontAxle.x + Rf − (rearAxle.x − Rr)` |
 | `frontCenter` | `frontAxle.x` (по горизонтали) |
-| `bbHeight` | `R − bbDrop` |
+| `bbHeight` | `Rr − bbDrop` |
 | `chainstayAngle` | `asin(bbDrop / chainstay)`, ° |
 | `effectiveTopTube` | `reach + stack / tan STA` |
 | `topTubeAngle` | угол линии seatTop → htTop к горизонту, ° |
@@ -69,7 +71,7 @@ Vite + TypeScript (strict) + Vitest. Рендер — чистый SVG, без U
 ### Валидность
 
 Геометрия невалидна, если: угол вне (45°, 90°], длина ≤ 0 (`headTube`, `chainstay`, `seatTube`,
-`rim`, `tire`, `forkLength`), `chainstay ≤ |bbDrop|`, `bbHeight ≤ 0`, нечисловое значение.
+`rimFront`, `rimRear`, `tireFront`, `tireRear`, `forkLength`), `chainstay ≤ |bbDrop|`, `bbHeight ≤ 0`, нечисловое значение.
 
 ## Решатель
 
@@ -100,7 +102,7 @@ Hash вида `#stack=560&reach=385&…&lock=trail,stack`. Пишется чер
 чекбокс-замок с `aria-label`. Применение по `change` (Enter/blur). Ошибка — текст под полем, `role=alert`,
 пропадает при следующей успешной правке. Справа SVG-чертёж, viewBox подгоняется под рамку с отступом.
 
-Чертёж: земля, оба колеса (окружности радиуса R), перья, верхние перья (`rearAxle → seatTop`),
+Чертёж: земля, оба колеса (окружности радиусов Rf, Rr), перья, верхние перья (`rearAxle → seatTop`),
 подседельная, верхняя (`seatTop → htTop`), нижняя (`BB → htBottom`), рулевая, вилка
 (`htBottom → коронка → передняя ось`), ось руления пунктиром до земли, отрезок trail на земле.
 Цвета через CSS-переменные, тёмная тема по `prefers-color-scheme`.

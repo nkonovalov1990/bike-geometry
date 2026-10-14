@@ -16,7 +16,7 @@ export function decode(hash: string): State {
   for (const k of BASE_KEYS) {
     const raw = p.get(k)?.trim();
     const v = raw ? Number(raw) : NaN;
-    if (Number.isFinite(v) && (k !== 'rim' || RIM_SIZES.some((r) => r.bsd === v))) base[k] = v;
+    if (Number.isFinite(v) && (!k.startsWith('rim') || RIM_SIZES.some((r) => r.bsd === v))) base[k] = v;
   }
   const locks = new Set((p.get('lock') ?? '').split(',').filter(isFieldKey));
   return { base: isValid(base) ? base : { ...DEFAULTS }, locks };
