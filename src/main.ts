@@ -24,6 +24,7 @@ const LABELS: Record<FieldKey, string> = {
   totalLength: 'Общая длина, мм',
   frontCenter: 'Front center, мм',
   bbHeight: 'Высота каретки, мм',
+  chainstayAngle: 'Угол перьев, °',
   effectiveTopTube: 'Эфф. верх. труба, мм',
 };
 

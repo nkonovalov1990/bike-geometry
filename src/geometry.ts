@@ -1,5 +1,5 @@
 export const BASE_KEYS = ['stack', 'reach', 'headAngle', 'seatAngle', 'headTube', 'chainstay', 'bbDrop', 'forkOffset', 'lowerStack', 'seatTube', 'rim', 'tire'] as const;
-export const DERIVED_KEYS = ['forkLength', 'trail', 'wheelbase', 'totalLength', 'frontCenter', 'bbHeight', 'effectiveTopTube'] as const;
+export const DERIVED_KEYS = ['forkLength', 'trail', 'wheelbase', 'totalLength', 'frontCenter', 'bbHeight', 'chainstayAngle', 'effectiveTopTube'] as const;
 export type BaseKey = (typeof BASE_KEYS)[number];
 export type DerivedKey = (typeof DERIVED_KEYS)[number];
 export type FieldKey = BaseKey | DerivedKey;
@@ -8,7 +8,7 @@ export type Pt = { x: number; y: number };
 
 // Base params the solver may change; the rest change only by direct input.
 export const SOLVABLE: readonly BaseKey[] = ['stack', 'reach', 'headAngle', 'seatAngle', 'headTube', 'chainstay', 'bbDrop', 'forkOffset'];
-export const ANGLE_KEYS: ReadonlySet<FieldKey> = new Set<FieldKey>(['headAngle', 'seatAngle']);
+export const ANGLE_KEYS: ReadonlySet<FieldKey> = new Set<FieldKey>(['headAngle', 'seatAngle', 'chainstayAngle']);
 
 export const DEFAULTS: Base = {
   stack: 560, reach: 385, headAngle: 73, seatAngle: 73.5, headTube: 150, chainstay: 410,
@@ -68,6 +68,7 @@ export function derived(b: Base): Record<DerivedKey, number> {
     totalLength: p.frontAxle.x - p.rearAxle.x + 2 * p.wheelRadius,
     frontCenter: p.frontAxle.x,
     bbHeight: p.wheelRadius - b.bbDrop,
+    chainstayAngle: (Math.asin(b.bbDrop / b.chainstay) * 180) / Math.PI,
     effectiveTopTube: b.reach + b.stack / Math.tan(rad(b.seatAngle)),
   };
 }

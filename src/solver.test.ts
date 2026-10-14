@@ -30,6 +30,11 @@ describe('solve', () => {
     expect(derived(b).totalLength).toBeCloseTo(1700, 6);
   });
 
+  it('chainstay angle edit reaches the target', () => {
+    const b = ok(solve(DEFAULTS, { key: 'chainstayAngle', value: 8 }, locks()));
+    expect(derived(b).chainstayAngle).toBeCloseTo(8, 6);
+  });
+
   it('derived edit reaches the target, unrelated params stay', () => {
     const b = ok(solve(DEFAULTS, { key: 'trail', value: 60 }, locks()));
     expect(derived(b).trail).toBeCloseTo(60, 6);

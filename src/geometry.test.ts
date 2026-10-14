@@ -13,6 +13,7 @@ describe('derived', () => {
     expect(d.frontCenter).toBeCloseTo(581.864, 2);
     expect(d.bbHeight).toBeCloseTo(269, 6);
     expect(d.effectiveTopTube).toBeCloseTo(550.880, 2);
+    expect(d.chainstayAngle).toBeCloseTo(9.830, 3);
   });
 
   it('agrees with the textbook trail formula', () => {
