@@ -33,6 +33,14 @@ describe('solve', () => {
     expect(b.seatAngle).toBeCloseTo(73.5, 6);
   });
 
+  it('leaves params the targets do not depend on exactly untouched', () => {
+    const b = ok(solve(DEFAULTS, { key: 'headAngle', value: 70 }, locks('trail')));
+    expect(b.stack).toBe(560);
+    expect(b.bbDrop).toBe(70);
+    expect(b.reach).toBe(385);
+    expect(derived(b).trail).toBeCloseTo(T0.trail, 6);
+  });
+
   it('locked trail survives head angle edit; offset compensates', () => {
     const b = ok(solve(DEFAULTS, { key: 'headAngle', value: 72 }, locks('trail')));
     const a = (72 * Math.PI) / 180;

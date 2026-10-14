@@ -54,6 +54,7 @@ function group(title: string, keys: readonly FieldKey[]) {
     lock.addEventListener('change', () => {
       if (lock.checked) state.locks.add(key);
       else state.locks.delete(key);
+      for (const r of rows.values()) r.error.textContent = '';
       update();
     });
     fs.append(row);
@@ -83,3 +84,4 @@ group('Базовые', BASE_KEYS);
 group('Производные', DERIVED_KEYS);
 form.addEventListener('submit', (e) => e.preventDefault());
 update();
+window.addEventListener('hashchange', () => location.reload());

@@ -16,16 +16,20 @@ export function solve(base: Base, edit: { key: FieldKey; value: number }, locks:
   if (targets.length > vars.length) return { ok: false, error: 'overconstrained' };
 
   const residual = (x: Base) => targets.map(([k, v]) => field(x, k) - v);
-  for (let iter = 0; iter < 30; iter++) {
+  for (let iter = 0; iter <= 30; iter++) {
     const r = residual(b);
     if (!r.every(Number.isFinite)) return { ok: false, error: 'unreachable' };
     if (r.every((v) => Math.abs(v) < 1e-6)) return isValid(b) ? { ok: true, base: b } : { ok: false, error: 'invalid' };
+    if (iter === 30) break; // final pass only checks the last step
     const J = r.map(() => vars.map(() => 0));
     vars.forEach((k, j) => {
       const dv = H / scale(k);
       const up = residual({ ...b, [k]: b[k] + dv });
       const down = residual({ ...b, [k]: b[k] - dv });
-      r.forEach((_, i) => (J[i][j] = (up[i] - down[i]) / (2 * H)));
+      r.forEach((_, i) => {
+        const d = (up[i] - down[i]) / (2 * H);
+        J[i][j] = Math.abs(d) < 1e-7 ? 0 : d; // drop central-difference noise
+      });
     });
     // Min-norm Gauss-Newton step: dx = Jᵀ (J Jᵀ)⁻¹ (−r)
     const JJt = J.map((ri) => J.map((rj) => ri.reduce((s, v, k) => s + v * rj[k], 0)));
