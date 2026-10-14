@@ -10,7 +10,7 @@ describe('derived', () => {
     expect(d.trail).toBeCloseTo(56.587, 2);
     expect(d.wheelbase).toBeCloseTo(985.844, 2);
     expect(d.totalLength).toBeCloseTo(1663.844, 2);
-    expect(d.frontCenter).toBeCloseTo(581.864, 2);
+    expect(d.frontCenter).toBeCloseTo(586.060, 2);
     expect(d.bbHeight).toBeCloseTo(269, 6);
     expect(d.effectiveTopTube).toBeCloseTo(550.880, 2);
     expect(d.chainstayAngle).toBeCloseTo(9.830, 3);
@@ -70,6 +70,18 @@ describe('RIM_SIZES', () => {
   it.each(RIM_SIZES)('$label ($bsd) is valid', ({ bsd }) => {
     expect(isValid({ ...DEFAULTS, rimFront: bsd })).toBe(true);
     expect(isValid({ ...DEFAULTS, rimRear: bsd })).toBe(true);
+  });
+});
+
+describe('published manufacturer geometry', () => {
+  const near = (actual: number, published: number) => expect(Math.abs(actual - published)).toBeLessThan(1);
+  it('Canyon Ultimate CF SL 8.0 (2021) size M', () => {
+    const d = derived({ ...DEFAULTS, stack: 567, reach: 391, headAngle: 73.3, seatAngle: 73.8, headTube: 148, chainstay: 415, bbDrop: 70, forkOffset: 44.9, tireFront: 25, tireRear: 25 });
+    near(d.trail, 54); near(d.bbHeight, 266); near(d.wheelbase, 996); near(d.frontCenter, 591.1); near(d.totalLength, 1668);
+  });
+  it('Trek Domane+ Carbon (2024) size 52', () => {
+    const d = derived({ ...DEFAULTS, stack: 561, reach: 371, headAngle: 71.3, seatAngle: 74.2, headTube: 145, chainstay: 430, bbDrop: 80, forkOffset: 53, tireFront: 32, tireRear: 32 });
+    near(d.trail, 60.2); near(d.bbHeight, 263); near(d.wheelbase, 1013); near(d.frontCenter, 595.9); near(d.effectiveTopTube, 530);
   });
 });
 

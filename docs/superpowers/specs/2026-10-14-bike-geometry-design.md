@@ -61,7 +61,7 @@ Vite + TypeScript (strict) + Vitest. Рендер — чистый SVG, без U
 | `trail` | x пересечения оси руления с землёй − x передней оси |
 | `wheelbase` | `frontAxle.x − rearAxle.x` |
 | `totalLength` | `frontAxle.x + Rf − (rearAxle.x − Rr)` |
-| `frontCenter` | `frontAxle.x` (по горизонтали) |
+| `frontCenter` | `hypot(frontAxle.x, frontAxle.y)` — прямое расстояние от BB до передней оси (как у производителей) |
 | `bbHeight` | `Rr − bbDrop` |
 | `chainstayAngle` | `asin(bbDrop / chainstay)`, ° |
 | `effectiveTopTube` | `reach + stack / tan STA` |

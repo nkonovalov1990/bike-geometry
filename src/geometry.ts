@@ -69,7 +69,7 @@ export function derived(b: Base): Record<DerivedKey, number> {
     trail: p.axisGround.x - p.frontAxle.x,
     wheelbase: p.frontAxle.x - p.rearAxle.x,
     totalLength: p.frontAxle.x + p.frontRadius - (p.rearAxle.x - p.rearRadius),
-    frontCenter: p.frontAxle.x,
+    frontCenter: Math.hypot(p.frontAxle.x, p.frontAxle.y),
     bbHeight: p.rearRadius - b.bbDrop,
     chainstayAngle: (Math.asin(b.bbDrop / b.chainstay) * 180) / Math.PI,
     effectiveTopTube: b.reach + b.stack / Math.tan(rad(b.seatAngle)),
