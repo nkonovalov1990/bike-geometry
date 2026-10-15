@@ -2,7 +2,7 @@ import './style.css';
 import { ANGLE_KEYS, BASE_KEYS, DERIVED_KEYS, RIM_SIZES, field, type FieldKey } from './geometry';
 import { conflicts, riderFrom } from './fit';
 import { helpHtml } from './help';
-import { BAR_STYLES, COCKPIT_LIMITS, DEFAULT_COCKPIT, buildModel, type BarStyle, type Cockpit, type Part } from './model3d';
+import { BAR_LIMITS, BAR_PRESETS, BAR_STYLES, COCKPIT_LIMITS, DEFAULT_COCKPIT, buildModel, type BarDims, type BarStyle, type Cockpit, type Part } from './model3d';
 import { render } from './render';
 import { solve, type SolveError } from './solver';
 import { decode, encode } from './url';
@@ -130,12 +130,14 @@ for (const el of [heightInput, inseamInput]) el.addEventListener('change', () =>
 });
 
 const BAR_LABELS: Record<BarStyle, string> = { road: 'Шоссейный', gravel: 'Гревел', flat: 'Прямой', riser: 'Райзер' };
+const DIM_LABELS: Record<keyof BarDims, string> = { width: 'Ширина руля, мм', reach: 'Вылет, мм', drop: 'Хват вниз, мм', flare: 'Развал, °', rise: 'Подъём, мм', backsweep: 'Отгиб назад, °', upsweep: 'Отгиб вверх, °' };
 const cockpitFs = document.createElement('fieldset');
 cockpitFs.className = 'rider';
 const num = (id: string, label: string, [min, max]: readonly number[], step: number) =>
   `<div class="row"><label for="${id}">${label}</label><input id="${id}" type="number" min="${min}" max="${max}" step="${step}"></div>`;
 cockpitFs.innerHTML = `<legend>Кокпит (3D)</legend>
   <div class="row"><label for="c-bar">Руль</label><select id="c-bar">${BAR_STYLES.map((b) => `<option value="${b}">${BAR_LABELS[b]}</option>`).join('')}</select></div>
+  <div id="c-dims"></div>
   ${num('c-spacers', 'Проставки, мм', COCKPIT_LIMITS.spacers, 5)}${num('c-stem', 'Вынос, мм', COCKPIT_LIMITS.stemLength, 10)}${num('c-angle', 'Угол выноса, °', COCKPIT_LIMITS.stemAngle, 1)}`;
 form.append(cockpitFs);
 const cInputs = {
@@ -144,25 +146,45 @@ const cInputs = {
   stemLength: cockpitFs.querySelector<HTMLInputElement>('#c-stem')!,
   stemAngle: cockpitFs.querySelector<HTMLInputElement>('#c-angle')!,
 };
+const dimsBox = cockpitFs.querySelector<HTMLElement>('#c-dims')!;
+const dimInputs = new Map<keyof BarDims, HTMLInputElement>();
+const dimKeys = (bar: BarStyle) => Object.keys(BAR_LIMITS[bar]) as (keyof BarDims)[];
+const showDims = (bar: BarStyle, dims: BarDims) => { // only the fields the style has
+  dimsBox.innerHTML = dimKeys(bar).map((k) => num(`c-${k}`, DIM_LABELS[k], BAR_LIMITS[bar][k]!, 1)).join('');
+  dimInputs.clear();
+  for (const k of dimKeys(bar)) {
+    const el = dimsBox.querySelector<HTMLInputElement>(`#c-${k}`)!;
+    el.value = String(dims[k]);
+    el.addEventListener('change', () => commitCockpit());
+    dimInputs.set(k, el);
+  }
+};
 const showCockpit = (c: Cockpit) => {
   cInputs.bar.value = c.bar;
   cInputs.spacers.value = String(c.spacers);
   cInputs.stemLength.value = String(c.stemLength);
   cInputs.stemAngle.value = String(c.stemAngle);
+  showDims(c.bar, c.dims);
 };
-showCockpit(state.cockpit ?? DEFAULT_COCKPIT);
-for (const el of Object.values(cInputs)) el.addEventListener('change', () => {
-  const clamp = (k: 'spacers' | 'stemLength' | 'stemAngle') => {
-    const [lo, hi] = COCKPIT_LIMITS[k], v = cInputs[k].valueAsNumber;
-    return Number.isFinite(v) ? Math.min(hi, Math.max(lo, Math.round(v))) : DEFAULT_COCKPIT[k];
+const clampTo = ([lo, hi]: readonly number[], v: number, fallback: number) => (Number.isFinite(v) ? Math.min(hi!, Math.max(lo!, Math.round(v))) : fallback);
+function commitCockpit(styleChanged = false) {
+  const bar = cInputs.bar.value as BarStyle;
+  const dims = { ...BAR_PRESETS[bar] };
+  if (!styleChanged) for (const k of dimKeys(bar)) dims[k] = clampTo(BAR_LIMITS[bar][k]!, dimInputs.get(k)!.valueAsNumber, dims[k]);
+  const c: Cockpit = {
+    bar, dims,
+    spacers: Math.round(clampTo(COCKPIT_LIMITS.spacers, cInputs.spacers.valueAsNumber, DEFAULT_COCKPIT.spacers) / 5) * 5,
+    stemLength: clampTo(COCKPIT_LIMITS.stemLength, cInputs.stemLength.valueAsNumber, DEFAULT_COCKPIT.stemLength),
+    stemAngle: clampTo(COCKPIT_LIMITS.stemAngle, cInputs.stemAngle.valueAsNumber, DEFAULT_COCKPIT.stemAngle),
   };
-  const c: Cockpit = { bar: cInputs.bar.value as BarStyle, spacers: clamp('spacers'), stemLength: clamp('stemLength'), stemAngle: clamp('stemAngle') };
-  c.spacers = Math.round(c.spacers / 5) * 5;
   showCockpit(c);
-  state.cockpit = (Object.keys(c) as (keyof Cockpit)[]).some((k) => c[k] !== DEFAULT_COCKPIT[k]) ? c : undefined;
+  state.cockpit = JSON.stringify(c) !== JSON.stringify(DEFAULT_COCKPIT) ? c : undefined;
   history.replaceState(null, '', encode(state));
   if (state.view === '3d') scene?.update(model());
-});
+}
+showCockpit(state.cockpit ?? DEFAULT_COCKPIT);
+cInputs.bar.addEventListener('change', () => commitCockpit(true));
+for (const el of [cInputs.spacers, cInputs.stemLength, cInputs.stemAngle]) el.addEventListener('change', () => commitCockpit());
 group('Базовые', BASE_KEYS);
 group('Производные', DERIVED_KEYS);
 form.addEventListener('submit', (e) => e.preventDefault());

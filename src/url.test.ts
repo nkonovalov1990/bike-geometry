@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULTS, type FieldKey } from './geometry';
-import { DEFAULT_COCKPIT } from './model3d';
+import { BAR_PRESETS, DEFAULT_COCKPIT } from './model3d';
 import { decode, encode, type State } from './url';
 
 describe('url', () => {
@@ -58,20 +58,29 @@ describe('url', () => {
   });
 
   it('round-trips a non-default cockpit, only differing fields in the hash', () => {
-    const s: State = { base: { ...DEFAULTS }, locks: new Set<FieldKey>(), cockpit: { bar: 'riser', spacers: 35, stemLength: 90, stemAngle: 12 } };
+    const s: State = { base: { ...DEFAULTS }, locks: new Set<FieldKey>(), cockpit: { bar: 'riser', dims: { ...BAR_PRESETS.riser, rise: 40, width: 800 }, spacers: 35, stemLength: 90, stemAngle: 12 } };
     expect(decode(encode(s))).toEqual(s);
-    const part: State = { ...s, cockpit: { ...DEFAULT_COCKPIT, bar: 'flat' } };
+    const part: State = { ...s, cockpit: { ...DEFAULT_COCKPIT, bar: 'flat', dims: BAR_PRESETS.flat } };
     const hash = encode(part);
     expect(hash).toContain('bar=flat');
-    expect(hash).not.toMatch(/spacers|stem/);
+    expect(hash).not.toMatch(/spacers|stem|barWidth/);
     expect(decode(hash)).toEqual(part);
   });
 
   it('out-of-range or garbage cockpit values fall back to defaults', () => {
     expect(decode('#bar=tri&spacers=90&stem=abc&stemAngle=40').cockpit).toBeUndefined();
-    expect(decode('#bar=gravel&spacers=-5&stem=200').cockpit).toEqual({ ...DEFAULT_COCKPIT, bar: 'gravel' });
+    expect(decode('#bar=gravel&spacers=-5&stem=200').cockpit).toEqual({ ...DEFAULT_COCKPIT, bar: 'gravel', dims: BAR_PRESETS.gravel });
     expect(decode('#spacers=12').cockpit).toEqual({ ...DEFAULT_COCKPIT, spacers: 10 });
     expect(decode('#spacers=20&stem=100&stemAngle=-6').cockpit).toBeUndefined();
     expect(decode('').cockpit).toBeUndefined();
+  });
+
+  it('bar dims: only non-preset values are written; out-of-limit ones fall back to the style preset', () => {
+    const hash = encode({ base: { ...DEFAULTS }, locks: new Set(), cockpit: { ...DEFAULT_COCKPIT, dims: { ...BAR_PRESETS.road, drop: 140 } } });
+    expect(hash).toContain('barDrop=140');
+    expect(hash).not.toContain('barWidth');
+    expect(decode('#bar=flat&barWidth=900&barBack=25&barRise=10').cockpit).toEqual({ ...DEFAULT_COCKPIT, bar: 'flat', dims: BAR_PRESETS.flat });
+    expect(decode('#bar=riser&barWidth=800&barUp=3').cockpit?.dims).toEqual({ ...BAR_PRESETS.riser, width: 800, upsweep: 3 });
+    expect(decode('#barDrop=90&barFlare=40').cockpit).toBeUndefined();
   });
 });

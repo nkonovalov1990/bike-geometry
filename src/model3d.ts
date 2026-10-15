@@ -15,17 +15,23 @@ export type Part =
 
 export const BAR_STYLES = ['road', 'gravel', 'flat', 'riser'] as const;
 export type BarStyle = (typeof BAR_STYLES)[number];
-export type Cockpit = { bar: BarStyle; spacers: number; stemLength: number; stemAngle: number }; // mm, mm, deg
-export const DEFAULT_COCKPIT: Cockpit = { bar: 'road', spacers: 20, stemLength: 100, stemAngle: -6 };
-export const COCKPIT_LIMITS = { spacers: [0, 60], stemLength: [60, 140], stemAngle: [-17, 17] } as const;
-
-type BarShape = { width: number; reach: number; drop: number; flare: number; rise: number; backsweep: number; upsweep: number };
-const BARS: Record<BarStyle, BarShape> = {
+export type BarDims = { width: number; reach: number; drop: number; flare: number; rise: number; backsweep: number; upsweep: number }; // mm / deg; unused = 0
+export type Cockpit = { bar: BarStyle; dims: BarDims; spacers: number; stemLength: number; stemAngle: number }; // mm, mm, deg
+export const BAR_PRESETS: Record<BarStyle, BarDims> = {
   road: { width: 420, reach: 80, drop: 125, flare: 0, rise: 0, backsweep: 0, upsweep: 0 },
   gravel: { width: 440, reach: 75, drop: 115, flare: 16, rise: 0, backsweep: 0, upsweep: 0 },
   flat: { width: 720, reach: 0, drop: 0, flare: 0, rise: 0, backsweep: 9, upsweep: 0 },
-  riser: { width: 760, reach: 0, drop: 0, flare: 0, rise: 25, backsweep: 9, upsweep: 5 },
+  riser: { width: 780, reach: 0, drop: 0, flare: 0, rise: 30, backsweep: 9, upsweep: 5 },
 };
+/** Editable dimensions per style, [min, max]. */
+export const BAR_LIMITS: Record<BarStyle, Partial<Record<keyof BarDims, readonly [number, number]>>> = {
+  road: { width: [380, 460], reach: [60, 100], drop: [100, 150], flare: [0, 30] },
+  gravel: { width: [400, 480], reach: [60, 100], drop: [100, 150], flare: [0, 30] },
+  flat: { width: [560, 760], backsweep: [0, 20] },
+  riser: { width: [720, 820], rise: [0, 60], backsweep: [0, 20], upsweep: [0, 10] },
+};
+export const DEFAULT_COCKPIT: Cockpit = { bar: 'road', dims: BAR_PRESETS.road, spacers: 20, stemLength: 100, stemAngle: -6 };
+export const COCKPIT_LIMITS = { spacers: [0, 60], stemLength: [60, 140], stemAngle: [-17, 17] } as const;
 
 const rad = (d: number) => (d * Math.PI) / 180;
 const v = (p: Pt, z = 0): V3 => [p.x, p.y, z];
@@ -101,7 +107,7 @@ export function buildModel(b: Base, rider?: Rider, cockpit: Cockpit = DEFAULT_CO
   const dir = rad(90 - b.headAngle + cockpit.stemAngle);
   const stemEnd = add(clamp, { x: Math.cos(dir), y: Math.sin(dir) }, cockpit.stemLength);
   tube('stem', [v(clamp), v(stemEnd)], [16, 16], 'dark');
-  parts.push({ kind: 'bar', id: 'bar', style: cockpit.bar, center: v(stemEnd), ...BARS[cockpit.bar] });
+  parts.push({ kind: 'bar', id: 'bar', style: cockpit.bar, center: v(stemEnd), ...cockpit.dims });
 
   // Wheels and brakes
   parts.push({ kind: 'wheel', id: 'frontWheel', center: v(p.frontAxle), rim: b.rimFront, tire: b.tireFront, spokes: 28, flangeZ: 35 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULTS, points, type Base } from './geometry';
-import { BAR_STYLES, DEFAULT_COCKPIT, buildModel, pitchRadius, type Cockpit, type Part } from './model3d';
+import { BAR_LIMITS, BAR_PRESETS, BAR_STYLES, DEFAULT_COCKPIT, buildModel, pitchRadius, type Cockpit, type Part } from './model3d';
 
 const get = <K extends Part['kind']>(m: Part[], id: string) => m.find((p) => p.id === id) as Extract<Part, { kind: K }>;
 
@@ -68,7 +68,7 @@ describe('buildModel', () => {
     const a = (DEFAULTS.headAngle * Math.PI) / 180;
     const up = [-Math.cos(a), Math.sin(a)];
     const at = (k: number) => [p.htTop.x + up[0]! * k, p.htTop.y + up[1]! * k];
-    const bar = (c: Partial<Cockpit>) => buildModel(DEFAULTS, undefined, { ...DEFAULT_COCKPIT, ...c });
+    const bar = (c: Partial<Cockpit>) => buildModel(DEFAULTS, undefined, { ...DEFAULT_COCKPIT, ...(c.bar && { dims: BAR_PRESETS[c.bar] }), ...c });
 
     it.each([0, 20, 45])('spacers %i: stem clamp is spacers+20 above the head tube, steerer ends at spacers+40', (spacers) => {
       const parts = bar({ spacers });
@@ -108,7 +108,18 @@ describe('buildModel', () => {
       expect(pick('road')).toEqual({ width: 420, reach: 80, drop: 125, flare: 0, rise: 0, backsweep: 0, upsweep: 0 });
       expect(pick('gravel')).toMatchObject({ width: 440, reach: 75, drop: 115, flare: 16 });
       expect(pick('flat')).toMatchObject({ width: 720, rise: 0, backsweep: 9, upsweep: 0 });
-      expect(pick('riser')).toMatchObject({ width: 760, rise: 25, backsweep: 9, upsweep: 5 });
+      expect(pick('riser')).toMatchObject({ width: 780, rise: 30, backsweep: 9, upsweep: 5 });
+    });
+
+    it('bar part reflects custom dims', () => {
+      expect(get<'bar'>(bar({ bar: 'road', dims: { ...BAR_PRESETS.road, width: 400, drop: 140 } }), 'bar')).toMatchObject({ width: 400, drop: 140, reach: 80 });
+    });
+
+    it.each(BAR_STYLES.flatMap((s) => ['lo', 'hi'].map((e) => [s, e] as const)))('%s bar dims at %s limits: finite', (style, end) => {
+      const dims = { ...BAR_PRESETS[style] };
+      for (const [k, [lo, hi]] of Object.entries(BAR_LIMITS[style])) dims[k as keyof typeof dims] = end === 'lo' ? lo : hi;
+      const parts = bar({ bar: style, dims });
+      expect(JSON.stringify(parts).match(/null/g)).toBeNull();
     });
 
     it.each(BAR_STYLES.flatMap((s) => [-17, 17].map((stemAngle) => [s, stemAngle] as const)))('%s, stem angle %i, extremes: unique ids, finite', (style, stemAngle) => {

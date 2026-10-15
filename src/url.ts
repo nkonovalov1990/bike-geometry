@@ -1,7 +1,8 @@
 import { BASE_KEYS, DEFAULTS, RIM_SIZES, isFieldKey, isValid, type Base, type FieldKey } from './geometry';
 import { riderFrom, type Rider } from './fit';
-import { BAR_STYLES, COCKPIT_LIMITS, DEFAULT_COCKPIT, type Cockpit } from './model3d';
+import { BAR_LIMITS, BAR_PRESETS, BAR_STYLES, COCKPIT_LIMITS, DEFAULT_COCKPIT, type BarDims, type Cockpit } from './model3d';
 
+const DIM_KEYS: Record<keyof BarDims, string> = { width: 'barWidth', reach: 'barReach', drop: 'barDrop', flare: 'barFlare', rise: 'barRise', backsweep: 'barBack', upsweep: 'barUp' };
 export type State = { base: Base; locks: Set<FieldKey>; rider?: Rider; cockpit?: Cockpit; view?: '3d' };
 
 // Full precision on purpose: rounding would make locked derived fields drift after reload.
@@ -15,6 +16,7 @@ export function encode(s: State): string {
   }
   const c = s.cockpit;
   if (c && c.bar !== DEFAULT_COCKPIT.bar) p.set('bar', c.bar);
+  if (c) for (const k of Object.keys(BAR_LIMITS[c.bar]) as (keyof BarDims)[]) if (c.dims[k] !== BAR_PRESETS[c.bar][k]) p.set(DIM_KEYS[k], String(c.dims[k]));
   if (c && c.spacers !== DEFAULT_COCKPIT.spacers) p.set('spacers', String(c.spacers));
   if (c && c.stemLength !== DEFAULT_COCKPIT.stemLength) p.set('stem', String(c.stemLength));
   if (c && c.stemAngle !== DEFAULT_COCKPIT.stemAngle) p.set('stemAngle', String(c.stemAngle));
@@ -41,8 +43,14 @@ export function decode(hash: string): State {
     return Number.isFinite(v) && v >= lo && v <= hi ? Math.round(v / step) * step : fallback;
   };
   const bar = BAR_STYLES.find((x) => x === p.get('bar')) ?? DEFAULT_COCKPIT.bar;
+  const dims = { ...BAR_PRESETS[bar] };
+  for (const [k, [lo, hi]] of Object.entries(BAR_LIMITS[bar]) as [keyof BarDims, readonly [number, number]][]) {
+    const v = num(DIM_KEYS[k]);
+    if (v >= lo && v <= hi) dims[k] = v;
+  }
   const cockpit: Cockpit = {
     bar,
+    dims,
     spacers: inRange('spacers', DEFAULT_COCKPIT.spacers, 5),
     stemLength: inRange('stemLength', DEFAULT_COCKPIT.stemLength),
     stemAngle: inRange('stemAngle', DEFAULT_COCKPIT.stemAngle),
@@ -51,7 +59,7 @@ export function decode(hash: string): State {
     base: isValid(base) ? base : { ...DEFAULTS },
     locks,
     ...(rider && { rider }),
-    ...((Object.keys(cockpit) as (keyof Cockpit)[]).some((k) => cockpit[k] !== DEFAULT_COCKPIT[k]) && { cockpit }),
+    ...((Object.keys(cockpit) as (keyof Cockpit)[]).some((k) => (k === 'dims' ? JSON.stringify(cockpit.dims) !== JSON.stringify(DEFAULT_COCKPIT.dims) : cockpit[k] !== DEFAULT_COCKPIT[k])) && { cockpit }),
     ...(p.get('view') === '3d' && { view: '3d' as const }),
   };
 }
