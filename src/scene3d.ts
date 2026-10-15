@@ -619,8 +619,8 @@ export function mount(container: HTMLElement): { update(parts: Part[]): void; di
     camera.position.copy(center).add(dir);
     camera.lookAt(center);
     camera.updateMatrixWorld();
-    // Smallest distance at which every box corner stays within FILL of the half-fovs (q.z + 1 = -depth relative to the centre).
-    const FILL = 0.8;
+    // Box corners project wider than the bike's silhouette in the 3/4 view, so fitting the box at 100% leaves the bike at roughly 80% of the canvas.
+    const FILL = 1.0;
     const ty = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * FILL, tx = ty * camera.aspect;
     const inv = camera.matrixWorldInverse;
     let dist = 0;
