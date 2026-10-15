@@ -19,6 +19,36 @@ const add = (p: Pt, dir: Pt, k: number): Pt => ({ x: p.x + dir.x * k, y: p.y + d
 export const pitchRadius = (teeth: number) => 12.7 / (2 * Math.sin(Math.PI / teeth));
 const COGS = [34, 30, 27, 24, 21, 19, 17, 15, 13, 11];
 
+const TAU = 2 * Math.PI;
+const wrap = (a: number, from: number) => from + ((((a - from) % TAU) + TAU) % TAU); // a, as the first angle >= from
+
+/** Closed chain loop (counter-clockwise): ring top -> external tangent -> round the back of the cog -> pulleys -> round the front of the ring. */
+function chainPath(axle: Pt, R: number, r: number, pTop: Pt, pBot: Pt, ringZ: number, cogZ: number): V3[] {
+  const L = Math.hypot(axle.x, axle.y), phi = Math.atan2(axle.y, axle.x), alpha = Math.acos((R - r) / L);
+  // External tangent normals phi±alpha; the upper run is the one pointing up.
+  const nu = Math.sin(phi - alpha) > Math.sin(phi + alpha) ? phi - alpha : phi + alpha;
+  const tangentFrom = (q: Pt, c: Pt, rr: number, sign: number) => {
+    const dx = q.x - c.x, dy = q.y - c.y;
+    return Math.atan2(dy, dx) + sign * Math.acos(rr / Math.hypot(dx, dy));
+  };
+  const cogEnd = wrap(tangentFrom(pTop, axle, r, -1), nu);
+  const ringStart = wrap(tangentFrom(pBot, { x: 0, y: 0 }, R, 1), nu);
+  const arc = (c: Pt, rr: number, from: number, to: number, z: number): V3[] => {
+    const n = Math.max(2, Math.ceil((to - from) / rad(10)));
+    return Array.from({ length: n + 1 }, (_, i) => {
+      const t = from + ((to - from) * i) / n;
+      return [c.x + rr * Math.cos(t), c.y + rr * Math.sin(t), z] as V3;
+    });
+  };
+  return [
+    [R * Math.cos(nu), R * Math.sin(nu), ringZ],
+    ...arc(axle, r, nu, cogEnd, cogZ), // the upper run is the segment ring top -> arc start
+    v(pTop, cogZ),
+    v(pBot, cogZ),
+    ...arc({ x: 0, y: 0 }, R, ringStart, nu + TAU, ringZ),
+  ];
+}
+
 export function buildModel(b: Base, rider?: Rider): Part[] {
   const p = points(b);
   const d = derived(b);
@@ -72,13 +102,15 @@ export function buildModel(b: Base, rider?: Rider): Part[] {
   const rightEnd = add(p.bb, crankDir, 172.5), leftEnd = add(p.bb, crankDir, -172.5);
   tube('crankR', [[0, 0, 52], v(rightEnd, 52)], [12, 9], 'metal');
   tube('crankL', [[0, 0, -52], v(leftEnd, -52)], [12, 9], 'metal');
+  tube('pedalAxleR', [v(rightEnd, 52), v(rightEnd, 72)], [5, 5], 'metal');
+  tube('pedalAxleL', [v(leftEnd, -52), v(leftEnd, -72)], [5, 5], 'metal');
   parts.push({ kind: 'box', id: 'pedalR', center: v(rightEnd, 107), size: [90, 15, 70], mat: 'dark' });
   parts.push({ kind: 'box', id: 'pedalL', center: v(leftEnd, -107), size: [90, 15, 70], mat: 'dark' });
   const pulleyTop: Pt = { x: p.rearAxle.x + 10, y: p.rearAxle.y - 45 };
   const pulleyBottom: Pt = { x: p.rearAxle.x + 10, y: p.rearAxle.y - 95 };
   parts.push({ kind: 'box', id: 'derailleur', center: [pulleyTop.x, (pulleyTop.y + pulleyBottom.y) / 2, 55], size: [25, 80, 12], mat: 'metal' });
   const ring = pitchRadius(50), cog = pitchRadius(17), cogZ = 20 + (6 * 40) / (COGS.length - 1);
-  parts.push({ kind: 'chain', id: 'chain', path: [[0, ring, 47], [p.rearAxle.x, p.rearAxle.y + cog, cogZ], [p.rearAxle.x, p.rearAxle.y - cog, cogZ], v(pulleyTop, cogZ), v(pulleyBottom, cogZ), [0, -ring, 47], [0, ring, 47]] });
+  parts.push({ kind: 'chain', id: 'chain', path: chainPath(p.rearAxle, ring, cog, pulleyTop, pulleyBottom, 47, cogZ) });
 
   // Seat
   const saddleDist = rider ? 0.883 * inseamMm(rider) : b.seatTube + 200;

@@ -194,10 +194,22 @@ function setView(v: '2d' | '3d') {
   state.view = v === '3d' ? '3d' : undefined;
   svg.toggleAttribute('hidden', v === '3d');
   scene3d.hidden = v !== '3d';
-  for (const id of ['2d', '3d']) document.querySelector(`#tab-${id}`)!.setAttribute('aria-selected', String(id === v));
+  for (const id of ['2d', '3d']) {
+    const tab = document.querySelector<HTMLElement>(`#tab-${id}`)!;
+    tab.setAttribute('aria-selected', String(id === v));
+    tab.tabIndex = id === v ? 0 : -1;
+  }
   history.replaceState(null, '', encode(state));
   if (v === '3d') void show3d();
 }
 document.querySelector('#tab-2d')!.addEventListener('click', () => setView('2d'));
 document.querySelector('#tab-3d')!.addEventListener('click', () => setView('3d'));
+document.querySelector('.view-tabs')!.addEventListener('keydown', (e) => {
+  const key = (e as KeyboardEvent).key;
+  const to = key === 'ArrowLeft' || key === 'Home' ? '2d' : key === 'ArrowRight' || key === 'End' ? '3d' : null;
+  if (!to) return;
+  e.preventDefault();
+  setView(to);
+  document.querySelector<HTMLElement>(`#tab-${to}`)!.focus();
+});
 if (state.view === '3d') setView('3d');

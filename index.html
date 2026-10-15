@@ -9,12 +9,12 @@
     <main class="app">
       <form id="fields" class="fields"></form>
       <section class="view">
-        <div class="view-tabs" role="tablist">
-          <button type="button" role="tab" id="tab-2d" aria-selected="true">Схема</button>
-          <button type="button" role="tab" id="tab-3d" aria-selected="false">3D</button>
+        <div class="view-tabs" role="tablist" aria-label="Вид">
+          <button type="button" role="tab" id="tab-2d" aria-controls="drawing" aria-selected="true">Схема</button>
+          <button type="button" role="tab" id="tab-3d" aria-controls="scene3d" aria-selected="false" tabindex="-1">3D</button>
         </div>
         <svg id="drawing" class="drawing" role="img" aria-label="Чертёж рамы сбоку"></svg>
-        <div id="scene3d" class="scene3d" hidden></div>
+        <div id="scene3d" class="scene3d" role="tabpanel" aria-label="3D-модель велосипеда" aria-live="polite" hidden></div>
       </section>
     </main>
     <script type="module" src="/src/main.ts"></script>

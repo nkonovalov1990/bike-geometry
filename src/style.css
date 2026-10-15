@@ -63,6 +63,7 @@ legend { font-weight: 600; padding: 0 4px; }
 .view-tabs button[aria-selected='true'] { background: var(--accent); color: var(--bg); }
 .scene3d { width: 100%; aspect-ratio: 16 / 10; max-height: calc(100vh - 80px); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; touch-action: none; }
 .drawing { width: 100%; max-height: calc(100vh - 80px); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.drawing[hidden] { display: none; }
 .drawing line { stroke-linecap: round; }
 .tube { stroke: var(--frame); stroke-width: 8; }
 .fork { stroke: var(--frame); stroke-width: 6; }

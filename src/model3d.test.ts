@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULTS, points, type Base } from './geometry';
-import { buildModel, type Part } from './model3d';
+import { buildModel, pitchRadius, type Part } from './model3d';
 
 const get = <K extends Part['kind']>(m: Part[], id: string) => m.find((p) => p.id === id) as Extract<Part, { kind: K }>;
 
@@ -34,6 +34,23 @@ describe('buildModel', () => {
     expect((Math.atan2(top[1], -top[0]) * 180) / Math.PI).toBeCloseTo(73.5, 9);
     const def = get<'saddle'>(m, 'saddle').top;
     expect(Math.hypot(def[0], def[1])).toBeCloseTo(720, 6);
+  });
+
+  it('chain (sampled along its segments) stays out of the chainring and cog pitch circles by at most 1 mm', () => {
+    const path = get<'chain'>(m, 'chain').path;
+    const R = pitchRadius(50), r = pitchRadius(17);
+    for (let i = 1; i < path.length; i++) {
+      for (let t = 0; t <= 1; t += 0.05) {
+        const x = path[i - 1][0] + (path[i][0] - path[i - 1][0]) * t, y = path[i - 1][1] + (path[i][1] - path[i - 1][1]) * t;
+        expect(Math.hypot(x, y)).toBeGreaterThan(R - 1);
+        expect(Math.hypot(x - p.rearAxle.x, y - p.rearAxle.y)).toBeGreaterThan(r - 1);
+      }
+    }
+  });
+
+  it('pedal spindles stick out to z = ±72', () => {
+    expect(get<'tube'>(m, 'pedalAxleR').path.at(-1)![2]).toBe(72);
+    expect(get<'tube'>(m, 'pedalAxleL').path.at(-1)![2]).toBe(-72);
   });
 
   it.each<[string, Base]>([

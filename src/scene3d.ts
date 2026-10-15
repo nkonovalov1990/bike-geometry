@@ -24,7 +24,7 @@ function makeMats() {
     dark: new THREE.MeshPhysicalMaterial({ color: 0x26292f, metalness: 0.05, roughness: 0.55, clearcoat: 0.25, clearcoatRoughness: 0.4 }),
     rubber: std({ color: 0x1e2024, metalness: 0, roughness: 0.88 }),
     rim: std({ color: 0x2b2e34, metalness: 0.7, roughness: 0.35 }),
-    spoke: std({ color: 0x3c4048, metalness: 0.85, roughness: 0.3 }),
+    spoke: std({ color: 0x9aa0a8, metalness: 0.85, roughness: 0.35 }),
     steel: std({ color: 0xa4a9b2, metalness: 0.95, roughness: 0.22 }),
     floor: new THREE.ShadowMaterial({ opacity: 0.2 }),
   };
@@ -174,7 +174,7 @@ function buildWheel(p: Of<'wheel'>, c: Ctx) {
     const ha = ra + sign * offset;
     const hub = new THREE.Vector3(flangeR * Math.cos(ha), flangeR * Math.sin(ha), side * p.flangeZ);
     const rim = new THREE.Vector3(nippleR * Math.cos(ra), nippleR * Math.sin(ra), side * 1.5);
-    spokeMs.push(spanMatrix(hub, rim, 1));
+    spokeMs.push(spanMatrix(hub, rim, 1.3));
     const dir = rim.clone().sub(hub).normalize();
     nippleMs.push(spanMatrix(rim.clone().addScaledVector(dir, -4), rim.clone().addScaledVector(dir, 9), 1));
   }
@@ -461,7 +461,7 @@ export function mount(container: HTMLElement): { update(parts: Part[]): void; di
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
   renderer.domElement.style.display = 'block';
   renderer.domElement.style.width = renderer.domElement.style.height = '100%';
   container.appendChild(renderer.domElement);
@@ -523,6 +523,16 @@ export function mount(container: HTMLElement): { update(parts: Part[]): void; di
     });
   };
   controls.addEventListener('change', render);
+  renderer.domElement.addEventListener('webglcontextrestored', render);
+  // Panning must not drag the target (and camera) under the floor.
+  const keepAboveFloor = () => {
+    const min = floor.position.y + 0.05;
+    if (controls.target.y < min) {
+      camera.position.y += min - controls.target.y;
+      controls.target.y = min;
+    }
+  };
+  controls.addEventListener('change', keepAboveFloor);
 
   const applyTheme = () => {
     const panel = new THREE.Color(cssColor('--panel', '#ffffff'));
@@ -566,12 +576,20 @@ export function mount(container: HTMLElement): { update(parts: Part[]): void; di
 
   const frameView = (box: THREE.Box3) => {
     const center = box.getCenter(new THREE.Vector3());
-    const radius = box.getSize(new THREE.Vector3()).length() / 2;
-    const vfov = THREE.MathUtils.degToRad(camera.fov);
-    const fov = Math.min(vfov, 2 * Math.atan(Math.tan(vfov / 2) * camera.aspect));
-    const dist = (radius / Math.sin(fov / 2)) * 1.02;
+    const dir = new THREE.Vector3(0.72, 0.32, 1).normalize();
+    camera.position.copy(center).add(dir);
+    camera.lookAt(center);
+    camera.updateMatrixWorld();
+    // Smallest distance at which every box corner fits both half-fovs (depth = distance along the view axis).
+    const ty = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2), tx = ty * camera.aspect;
+    const inv = camera.matrixWorldInverse;
+    let dist = 0;
+    for (const x of [box.min.x, box.max.x]) for (const y of [box.min.y, box.max.y]) for (const z of [box.min.z, box.max.z]) {
+      const q = new THREE.Vector3(x, y, z).applyMatrix4(inv); // camera space, camera at distance 1 from the centre
+      dist = Math.max(dist, -q.z - 1 + Math.max(Math.abs(q.x) / tx, Math.abs(q.y) / ty));
+    }
     controls.target.copy(center);
-    camera.position.copy(center).addScaledVector(new THREE.Vector3(0.72, 0.32, 1).normalize(), dist);
+    camera.position.copy(center).addScaledVector(dir, dist * 1.1);
     camera.updateProjectionMatrix();
   };
 
@@ -602,6 +620,9 @@ export function mount(container: HTMLElement): { update(parts: Part[]): void; di
       themeObserver.disconnect();
       media.removeEventListener('change', applyTheme);
       controls.removeEventListener('change', render);
+      controls.removeEventListener('change', keepAboveFloor);
+      renderer.domElement.removeEventListener('webglcontextrestored', render);
+      sun.shadow.map?.dispose();
       controls.dispose();
       clear();
       Object.values(mats).forEach((m) => m.dispose());
