@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import type { Mat, Part, V3 } from './model3d';
+import { pitchRadius, type Mat, type Part, type V3 } from './model3d';
 
 type Of<K extends Part['kind']> = Extract<Part, { kind: K }>;
 type Mats = ReturnType<typeof makeMats>;
@@ -206,12 +206,244 @@ function buildBox(p: Of<'box'>, c: Ctx) {
   return m;
 }
 
-function build(p: Part, c: Ctx): THREE.Object3D | null {
+const circle = (x: number, y: number, r: number) => new THREE.Path().absarc(x, y, r, 0, TAU, true);
+
+/** Annular-sector window between arms of width armW (mm), outer edge swept by `skew` rad. */
+function window_(r1: number, r2: number, a: number, span: number, armW: number, skew = 0) {
+  const w = new THREE.Path();
+  const i0 = a + armW / 2 / r1, i1 = a + span - armW / 2 / r1;
+  const o0 = a + armW / 2 / r2 + skew, o1 = a + span - armW / 2 / r2 + skew;
+  w.absarc(0, 0, r1, i0, i1, false);
+  w.absarc(0, 0, r2, o1, o0, true);
+  w.closePath();
+  return w;
+}
+
+function buildDisc(p: Of<'disc'>, c: Ctx) {
+  const R = p.diameter / 2;
+  const geo = c.geos.get(`disc${R}`, () => {
+    const s = new THREE.Shape().absarc(0, 0, R, 0, TAU, false);
+    s.holes.push(circle(0, 0, 12));
+    for (let k = 0; k < 6; k++) {
+      const a = (k * TAU) / 6;
+      s.holes.push(circle(22 * Math.cos(a), 22 * Math.sin(a), 2.6)); // rotor bolts
+      s.holes.push(window_(30, R - 18, a, TAU / 6, 9, 0.22));
+    }
+    for (let k = 0; k < 36; k++) {
+      const a = ((k + 0.5) * TAU) / 36, r = k % 2 ? R - 7 : R - 12;
+      s.holes.push(circle(r * Math.cos(a), r * Math.sin(a), 2));
+    }
+    return new THREE.ExtrudeGeometry(s, { depth: 2, bevelEnabled: false, curveSegments: 48 }).translate(0, 0, -1);
+  });
+  const g = new THREE.Group();
+  g.position.copy(vec(p.center));
+  g.add(mesh(geo, c.mats.steel));
+  const bolt = c.geos.get('rotorBolt', () => new THREE.CylinderGeometry(4, 4, 4, 6).rotateX(Math.PI / 2));
+  for (let k = 0; k < 6; k++) {
+    const b = mesh(bolt, c.mats.metal);
+    const a = (k * TAU) / 6;
+    b.position.set(22 * Math.cos(a), 22 * Math.sin(a), -2);
+    g.add(b);
+  }
+  return g;
+}
+
+/** Sprocket outline: roller seats on the pitch circle, teeth rising ~3.8 mm above it. */
+function toothed(teeth: number, rp: number) {
+  const s = new THREE.Shape();
+  const step = TAU / teeth, root = rp - 3.9, tip = rp + 3.8;
+  const prof: [number, number][] = [[0, root], [0.14, root + 0.5], [0.28, rp + 0.4], [0.41, tip], [0.59, tip], [0.72, rp + 0.4], [0.86, root + 0.5]];
+  for (let k = 0; k < teeth; k++) {
+    for (const [f, r] of prof) {
+      const a = (k + f) * step;
+      if (k === 0 && f === 0) s.moveTo(r * Math.cos(a), r * Math.sin(a));
+      else s.lineTo(r * Math.cos(a), r * Math.sin(a));
+    }
+  }
+  s.closePath();
+  return s;
+}
+
+function buildRing(p: Of<'ring'>, c: Ctx) {
+  const rp = pitchRadius(p.teeth);
+  const chainring = p.id.startsWith('chainring');
+  const depth = chainring ? 3 : 2;
+  const geo = c.geos.get(`ring${p.teeth}|${chainring}`, () => {
+    const s = toothed(p.teeth, rp);
+    if (chainring) {
+      s.holes.push(circle(0, 0, 12));
+      for (let k = 0; k < 5; k++) s.holes.push(window_(32, rp - 13, (k * TAU) / 5, TAU / 5, 14));
+    } else {
+      s.holes.push(circle(0, 0, 17.5));
+      if (rp - 9 > 30) for (let k = 0; k < 5; k++) s.holes.push(window_(24, rp - 9, (k * TAU) / 5 + 0.3, TAU / 5, 8, 0.15));
+    }
+    return new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: true, bevelThickness: 0.4, bevelSize: 0.4, bevelSegments: 1, curveSegments: 24 })
+      .translate(0, 0, -depth / 2);
+  });
+  const g = new THREE.Group();
+  g.position.copy(vec(p.center));
+  g.add(mesh(geo, chainring ? c.mats.metal : c.mats.steel));
+  if (chainring && p.teeth >= 40) {
+    // Outer ring carries the spider, chainring bolts (BCD 110) and the spindle.
+    const arm = c.geos.get('spiderArm', () => new RoundedBoxGeometry(48, 14, 6, 2, 2));
+    const bolt = c.geos.get('ringBolt', () => new THREE.CylinderGeometry(5, 5, 12, 16).rotateX(Math.PI / 2));
+    for (let k = 0; k < 5; k++) {
+      const a = (k * TAU) / 5;
+      const m = mesh(arm, c.mats.dark);
+      m.position.set(32 * Math.cos(a), 32 * Math.sin(a), 4);
+      m.rotation.z = a;
+      const b = mesh(bolt, c.mats.steel);
+      b.position.set(55 * Math.cos(a), 55 * Math.sin(a), 0);
+      g.add(m, b);
+    }
+    g.add(zCyl(c, c.mats.dark, 24, 1, 9, 48));
+    g.add(zCyl(c, c.mats.steel, 12, -p.center[2] - 52, -p.center[2] + 52, 32));
+  }
+  return g;
+}
+
+function buildChain(p: Of<'chain'>, c: Ctx) {
+  const pts = p.path.map(vec);
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1]! + pts[i]!.distanceTo(pts[i - 1]!));
+  const total = cum[cum.length - 1]!;
+  const at = (s: number) => {
+    s = ((s % total) + total) % total;
+    let i = 1;
+    while (i < cum.length - 1 && cum[i]! < s) i++;
+    const t = (s - cum[i - 1]!) / (cum[i]! - cum[i - 1]! || 1);
+    return pts[i - 1]!.clone().lerp(pts[i]!, t);
+  };
+  const pitch = 12.7, n = Math.floor(total / pitch);
+  const plates: THREE.Matrix4[] = [], rollers: THREE.Matrix4[] = [];
+  const Z = new THREE.Vector3(0, 0, 1);
+  for (let k = 0; k < n; k++) {
+    const a = at(k * pitch), b = at((k + 1) * pitch);
+    const dir = b.clone().sub(a).normalize();
+    const side = Z.clone().addScaledVector(dir, -dir.z).normalize();
+    const up = side.clone().cross(dir);
+    const basis = new THREE.Matrix4().makeBasis(dir, up, side);
+    const mid = a.clone().add(b).multiplyScalar(0.5);
+    const off = k % 2 ? 3.7 : 2.6; // outer / inner plate pairs alternate
+    for (const s of [-1, 1]) plates.push(basis.clone().setPosition(mid.clone().addScaledVector(side, s * off)));
+    rollers.push(basis.clone().setPosition(a));
+  }
+  const g = new THREE.Group();
+  g.add(instanced(c.geos.get('plate', () => new RoundedBoxGeometry(19, 7.5, 1, 2, 0.45)), c.mats.steel, plates));
+  g.add(instanced(c.geos.get('roller', () => new THREE.CylinderGeometry(3.9, 3.9, 5, 12).rotateX(Math.PI / 2)), c.mats.spoke, rollers));
+  g.add(instanced(c.geos.get('pin', () => new THREE.CylinderGeometry(1.8, 1.8, 9.6, 8).rotateX(Math.PI / 2)), c.mats.steel, rollers));
+  return g;
+}
+
+/** Bar-tape bump texture: diagonal stripes so the tape reads as a helical wrap. */
+function tapeTexture() {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 64;
+  const x = cv.getContext('2d');
+  if (x) {
+    x.fillStyle = '#fff';
+    x.fillRect(0, 0, 64, 64);
+    x.strokeStyle = '#000';
+    x.lineWidth = 6;
+    for (let i = -64; i < 128; i += 32) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i + 64, 64); x.stroke(); }
+  }
+  const t = new THREE.CanvasTexture(cv);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+
+function buildBar(p: Of<'bar'>, c: Ctx) {
+  const g = new THREE.Group();
+  g.position.copy(vec(p.center));
+  const hw = p.width / 2, rc = p.reach, dr = p.drop;
+  const side = (s: number): THREE.Vector3[] => ([
+    [0, 0, hw * 0.45], [3, 0, hw * 0.8], [rc * 0.55, -2, hw * 0.97], [rc, -dr * 0.22, hw],
+    [rc * 0.9, -dr * 0.62, hw], [rc * 0.45, -dr * 0.93, hw], [-10, -dr, hw], [-45, -dr - 2, hw],
+  ] as V3[]).map(([x, y, z]) => new THREE.Vector3(x, y, s * z));
+  const curve = new THREE.CatmullRomCurve3([...side(-1).reverse(), new THREE.Vector3(), ...side(1)], false, 'centripetal');
+  const L = curve.getLength();
+  const radius = (u: number) => {
+    const d = Math.abs(u - 0.5) * L; // Ø31.8 clamp area → Ø24
+    const t = THREE.MathUtils.smoothstep(d, 25, 70);
+    return 15.9 + (12 - 15.9) * t;
+  };
+  g.add(mesh(c.geos.get(null, () => taperedTube(curve, radius, 240, 24)), c.mats.metal));
+
+  // Tape: same curve from the shoulders to the ends, a little thicker.
+  const u0 = 0.5 + 75 / L, u1 = 1 - 3 / L;
+  for (const s of [-1, 1]) {
+    const samples = Array.from({ length: 60 }, (_, i) => {
+      const u = u0 + ((u1 - u0) * i) / 59;
+      return curve.getPointAt(s > 0 ? u : 1 - u);
+    });
+    const sub = new THREE.CatmullRomCurve3(samples);
+    const len = sub.getLength();
+    const tex = tapeTexture();
+    tex.repeat.set(len / 9, 1);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x202226, roughness: 0.75, bumpMap: tex, bumpScale: 2 });
+    c.textures.push(tex);
+    c.owned.push(mat);
+    g.add(mesh(c.geos.get(null, () => new THREE.TubeGeometry(sub, 160, 14.6, 18, false)), mat));
+    const plug = mesh(sphere(c), c.mats.rubber);
+    plug.position.copy(samples[samples.length - 1]!);
+    plug.scale.setScalar(14.6);
+    g.add(plug);
+
+    // Brake/shift hood on the front of the bend, lever blade hanging down the drop.
+    const hood = mesh(c.geos.get('hood', () => new RoundedBoxGeometry(52, 30, 26, 4, 10)), c.mats.rubber);
+    hood.position.set(rc + 8, -4, s * hw);
+    hood.rotation.z = 0.25;
+    const horn = mesh(sphere(c), c.mats.rubber);
+    horn.position.set(rc + 30, 12, s * hw);
+    horn.scale.set(9, 11, 11);
+    const lever = new THREE.CatmullRomCurve3([new THREE.Vector3(rc + 30, -10, s * hw), new THREE.Vector3(rc + 36, -50, s * hw), new THREE.Vector3(rc + 18, -dr * 0.82, s * hw)]);
+    const blade = mesh(c.geos.get(null, () => taperedTube(lever, (u) => 5.5 - 2 * u, 48, 12)), c.mats.metal);
+    g.add(hood, horn, blade);
+  }
+  g.add(zCyl(c, c.mats.dark, 20, -22, 22, 40)); // stem clamp
+  return g;
+}
+
+function buildSaddle(p: Of<'saddle'>, c: Ctx) {
+  const L = p.length, W = p.width;
+  const geo = c.geos.get(`saddle${L}|${W}`, () => {
+    const s = new THREE.SphereGeometry(1, 72, 36).rotateZ(Math.PI / 2); // poles at tail and nose
+    const pos = s.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+      const t = (x + 1) / 2; // 0 tail → 1 nose
+      const hw = THREE.MathUtils.lerp(W / 2, 22, THREE.MathUtils.smoothstep(t, 0.32, 0.78));
+      const kick = 9 * (1 - THREE.MathUtils.smoothstep(t, 0, 0.3)) + 3 * THREE.MathUtils.smoothstep(t, 0.85, 1);
+      pos.setXYZ(i, (x * L) / 2, y * (y > 0 ? 14 : 20) + kick - 14, z * hw);
+    }
+    s.computeVertexNormals();
+    return s;
+  });
+  const g = new THREE.Group();
+  g.position.copy(vec(p.top));
+  g.add(mesh(geo, c.mats.dark));
+  for (const s of [-1, 1]) {
+    const rail = new THREE.CatmullRomCurve3(([
+      [L * 0.38, -14, 10], [L * 0.24, -34, 20], [0, -40, 23], [-L * 0.22, -40, 25], [-L * 0.37, -22, W * 0.3],
+    ] as V3[]).map(([x, y, z]) => new THREE.Vector3(x, y, s * z)));
+    g.add(mesh(c.geos.get(null, () => new THREE.TubeGeometry(rail, 48, 3.5, 10, false)), c.mats.steel));
+  }
+  const clamp = mesh(c.geos.get('saddleClamp', () => new RoundedBoxGeometry(55, 12, 50, 3, 4)), c.mats.metal);
+  clamp.position.set(0, -44, 0);
+  g.add(clamp);
+  return g;
+}
+
+function build(p: Part, c: Ctx): THREE.Object3D {
   switch (p.kind) {
     case 'tube': return buildTube(p, c);
     case 'wheel': return buildWheel(p, c);
+    case 'disc': return buildDisc(p, c);
+    case 'ring': return buildRing(p, c);
+    case 'chain': return buildChain(p, c);
+    case 'bar': return buildBar(p, c);
+    case 'saddle': return buildSaddle(p, c);
     case 'box': return buildBox(p, c);
-    default: return null;
   }
 }
 
@@ -260,6 +492,7 @@ export function mount(container: HTMLElement): { update(parts: Part[]): void; di
   sun.shadow.camera.right = sun.shadow.camera.top = 1.4;
   sun.shadow.camera.near = 0.1;
   sun.shadow.camera.far = 10;
+  sun.shadow.camera.updateProjectionMatrix();
   sun.shadow.bias = -0.0004;
   sun.shadow.normalBias = 0.01;
   sun.shadow.radius = 4;
@@ -348,7 +581,7 @@ export function mount(container: HTMLElement): { update(parts: Part[]): void; di
       const ctx: Ctx = { geos, mats, owned, textures };
       for (const p of parts) {
         const o = build(p, ctx);
-        if (o) bike.add(o);
+        bike.add(o);
       }
       // Floor touches the lowest tyre; light and shadow box follow the bike.
       const lows = parts.flatMap((p) => (p.kind === 'wheel' ? [p.center[1] - p.rim / 2 - p.tire] : []));
