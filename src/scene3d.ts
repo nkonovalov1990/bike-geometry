@@ -109,7 +109,7 @@ function buildTube(p: Of<'tube'>, c: Ctx) {
   const pts = p.path.map(vec);
   if (pts.length === 2) {
     const [a, b] = pts as [THREE.Vector3, THREE.Vector3];
-    const len = a.distanceTo(b);
+    const len = a.distanceTo(b) - (p.id.startsWith('spacer') ? 0.8 : 0); // visible seam between rings
     const m = mesh(c.geos.get(`cyl${p.r[0]}|${p.r[1]}|${len.toFixed(2)}`, () => new THREE.CylinderGeometry(p.r[1], p.r[0], len, 40)), mat);
     m.position.copy(a).add(b).multiplyScalar(0.5);
     m.quaternion.setFromUnitVectors(Y, b.clone().sub(a).normalize());
@@ -352,42 +352,43 @@ function tapeTexture() {
   return t;
 }
 
-function buildBar(p: Of<'bar'>, c: Ctx) {
+/** Tape/grip sleeve along a bar curve from u0 to u1 (arc-length fractions, 0.5 = centre), with an end plug. */
+function sleeve(c: Ctx, curve: THREE.CatmullRomCurve3, s: number, u0: number, u1: number, r: number, mat: THREE.Material) {
+  const samples = Array.from({ length: 60 }, (_, i) => curve.getPointAt(s > 0 ? u0 + ((u1 - u0) * i) / 59 : 1 - (u0 + ((u1 - u0) * i) / 59)));
+  const sub = new THREE.CatmullRomCurve3(samples);
   const g = new THREE.Group();
-  g.position.copy(vec(p.center));
+  g.add(mesh(c.geos.get(null, () => new THREE.TubeGeometry(sub, 160, r, 18, false)), mat));
+  const plug = mesh(sphere(c), c.mats.rubber);
+  plug.position.copy(samples[samples.length - 1]!);
+  plug.scale.setScalar(r);
+  g.add(plug);
+  return g;
+}
+
+function buildDropBar(p: Of<'bar'>, c: Ctx, g: THREE.Group) {
   const hw = p.width / 2, rc = p.reach, dr = p.drop;
+  const k = Math.tan(THREE.MathUtils.degToRad(p.flare)) * 1.2; // drops splay out with depth
   const side = (s: number): THREE.Vector3[] => ([
     [0, 0, hw * 0.45], [3, 0, hw * 0.8], [rc * 0.55, -2, hw * 0.97], [rc, -dr * 0.22, hw],
-    [rc * 0.9, -dr * 0.62, hw], [rc * 0.45, -dr * 0.93, hw], [-10, -dr, hw], [-45, -dr - 2, hw],
+    [rc * 0.9, -dr * 0.62, hw + k * dr * 0.62], [rc * 0.45, -dr * 0.93, hw + k * dr * 0.93], [-10, -dr, hw + k * dr], [-45, -dr - 2, hw + k * (dr + 2)],
   ] as V3[]).map(([x, y, z]) => new THREE.Vector3(x, y, s * z));
   const curve = new THREE.CatmullRomCurve3([...side(-1).reverse(), new THREE.Vector3(), ...side(1)], false, 'centripetal');
   const L = curve.getLength();
   const radius = (u: number) => {
     const d = Math.abs(u - 0.5) * L; // Ø31.8 clamp area → Ø24
-    const t = THREE.MathUtils.smoothstep(d, 25, 70);
-    return 15.9 + (12 - 15.9) * t;
+    return 15.9 + (12 - 15.9) * THREE.MathUtils.smoothstep(d, 25, 70);
   };
   g.add(mesh(c.geos.get(null, () => taperedTube(curve, radius, 240, 24)), c.mats.metal));
 
-  // Tape: same curve from the shoulders to the ends, a little thicker.
+  // Tape from the shoulders to the ends, a little thicker.
   const u0 = 0.5 + 75 / L, u1 = 1 - 3 / L;
   for (const s of [-1, 1]) {
-    const samples = Array.from({ length: 60 }, (_, i) => {
-      const u = u0 + ((u1 - u0) * i) / 59;
-      return curve.getPointAt(s > 0 ? u : 1 - u);
-    });
-    const sub = new THREE.CatmullRomCurve3(samples);
-    const len = sub.getLength();
     const tex = tapeTexture();
-    tex.repeat.set(len / 9, 1);
+    tex.repeat.set(((u1 - u0) * L) / 9, 1);
     const mat = new THREE.MeshStandardMaterial({ color: 0x202226, roughness: 0.75, bumpMap: tex, bumpScale: 2 });
     c.textures.push(tex);
     c.owned.push(mat);
-    g.add(mesh(c.geos.get(null, () => new THREE.TubeGeometry(sub, 160, 14.6, 18, false)), mat));
-    const plug = mesh(sphere(c), c.mats.rubber);
-    plug.position.copy(samples[samples.length - 1]!);
-    plug.scale.setScalar(14.6);
-    g.add(plug);
+    g.add(sleeve(c, curve, s, u0, u1, 14.6, mat));
 
     // Brake/shift hood on the front of the bend, lever blade hanging down the drop.
     const hood = mesh(c.geos.get('hood', () => new RoundedBoxGeometry(52, 30, 26, 4, 10)), c.mats.rubber);
@@ -400,6 +401,40 @@ function buildBar(p: Of<'bar'>, c: Ctx) {
     const blade = mesh(c.geos.get(null, () => taperedTube(lever, (u) => 5.5 - 2 * u, 48, 12)), c.mats.metal);
     g.add(hood, horn, blade);
   }
+}
+
+/** Flat / riser bar: straight Ø31.8 centre tapering to Ø22.2, backsweep and upsweep at the grips, rise just outside the clamp. */
+function buildFlatBar(p: Of<'bar'>, c: Ctx, g: THREE.Group) {
+  const hw = p.width / 2, tb = Math.tan(THREE.MathUtils.degToRad(p.backsweep)), tu = Math.tan(THREE.MathUtils.degToRad(p.upsweep));
+  const at = (z: number): V3 => [-tb * Math.max(0, z - 60), p.rise * THREE.MathUtils.smoothstep(z, 35, 80) + tu * Math.max(0, z - 80), z];
+  const zs = [25, 45, 60, 80, 110, 160, 220, 280, 340].filter((z) => z < hw - 20).concat(hw);
+  const side = (s: number) => zs.map((z) => { const [x, y, zz] = at(z); return new THREE.Vector3(x, y, s * zz); });
+  const curve = new THREE.CatmullRomCurve3([...side(-1).reverse(), new THREE.Vector3(...at(0)), ...side(1)], false, 'centripetal');
+  const L = curve.getLength();
+  const radius = (u: number) => 15.9 + (11.1 - 15.9) * THREE.MathUtils.smoothstep(Math.abs(u - 0.5) * L, 50, 100);
+  g.add(mesh(c.geos.get(null, () => taperedTube(curve, radius, 240, 24)), c.mats.metal));
+
+  const gripLen = 130;
+  for (const s of [-1, 1]) {
+    g.add(sleeve(c, curve, s, 1 - gripLen / L, 1 - 2 / L, 15.2, c.mats.dark));
+    // Brake lever just inboard of the grip, shifter pod inboard of that.
+    const zb = hw - gripLen - 20, [bx, by] = at(zb);
+    const body = mesh(c.geos.get('levBody', () => new RoundedBoxGeometry(34, 26, 26, 3, 6)), c.mats.metal);
+    body.position.set(bx + 10, by - 6, s * zb);
+    const lever = new THREE.CatmullRomCurve3([new THREE.Vector3(bx + 24, by - 12, s * zb), new THREE.Vector3(bx + 70, by - 18, s * zb), new THREE.Vector3(bx + 100, by - 36, s * zb)]);
+    const blade = mesh(c.geos.get(null, () => taperedTube(lever, (u) => 5 - 2 * u, 40, 10)), c.mats.metal);
+    const zp = zb - 38, [sx, sy] = at(zp);
+    const pod = mesh(c.geos.get('shiftPod', () => new RoundedBoxGeometry(38, 24, 30, 3, 6)), c.mats.dark);
+    pod.position.set(sx + 8, sy - 22, s * zp);
+    g.add(body, blade, pod);
+  }
+}
+
+function buildBar(p: Of<'bar'>, c: Ctx) {
+  const g = new THREE.Group();
+  g.position.copy(vec(p.center));
+  if (p.style === 'road' || p.style === 'gravel') buildDropBar(p, c, g);
+  else buildFlatBar(p, c, g);
   g.add(zCyl(c, c.mats.dark, 20, -22, 22, 40)); // stem clamp
   return g;
 }
@@ -580,16 +615,17 @@ export function mount(container: HTMLElement): { update(parts: Part[]): void; di
     camera.position.copy(center).add(dir);
     camera.lookAt(center);
     camera.updateMatrixWorld();
-    // Smallest distance at which every box corner fits both half-fovs (depth = distance along the view axis).
-    const ty = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2), tx = ty * camera.aspect;
+    // Smallest distance at which every box corner stays within FILL of the half-fovs (q.z + 1 = -depth relative to the centre).
+    const FILL = 0.8;
+    const ty = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * FILL, tx = ty * camera.aspect;
     const inv = camera.matrixWorldInverse;
     let dist = 0;
     for (const x of [box.min.x, box.max.x]) for (const y of [box.min.y, box.max.y]) for (const z of [box.min.z, box.max.z]) {
-      const q = new THREE.Vector3(x, y, z).applyMatrix4(inv); // camera space, camera at distance 1 from the centre
-      dist = Math.max(dist, -q.z - 1 + Math.max(Math.abs(q.x) / tx, Math.abs(q.y) / ty));
+      const q = new THREE.Vector3(x, y, z).applyMatrix4(inv);
+      dist = Math.max(dist, Math.abs(q.x) / tx + q.z + 1, Math.abs(q.y) / ty + q.z + 1);
     }
     controls.target.copy(center);
-    camera.position.copy(center).addScaledVector(dir, dist * 1.1);
+    camera.position.copy(center).addScaledVector(dir, dist);
     camera.updateProjectionMatrix();
   };
 
