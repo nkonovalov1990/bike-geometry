@@ -546,6 +546,8 @@ export function mount(container: HTMLElement): { update(parts: Part[]): void; di
   let owned: THREE.Material[] = [];
   let textures: THREE.Texture[] = [];
   let framed = false;
+  let lastBox: THREE.Box3 | undefined;
+  let interacted = false; // until the first user input, resizes re-frame the bike
 
   // Render on demand: one frame per request; damping keeps requesting via controls' 'change'.
   let frame = 0;
@@ -568,6 +570,7 @@ export function mount(container: HTMLElement): { update(parts: Part[]): void; di
     }
   };
   controls.addEventListener('change', keepAboveFloor);
+  controls.addEventListener('start', () => { interacted = true; });
 
   const applyTheme = () => {
     const panel = new THREE.Color(cssColor('--panel', '#ffffff'));
@@ -586,12 +589,13 @@ export function mount(container: HTMLElement): { update(parts: Part[]): void; di
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
   applyTheme();
 
-  const resize = () => {
+  const resize = () => { // frameView is a const declared below; it is only called after update() has set lastBox
     const w = container.clientWidth, h = container.clientHeight;
     if (!w || !h) return;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    if (!interacted && lastBox) frameView(lastBox);
     render();
   };
   const resizeObserver = new ResizeObserver(resize);
@@ -645,6 +649,7 @@ export function mount(container: HTMLElement): { update(parts: Part[]): void; di
         const center = box.getCenter(new THREE.Vector3());
         sun.target.position.copy(center);
         sun.position.copy(center).add(new THREE.Vector3(1.2, 3.5, 1.8));
+        lastBox = box;
         if (!framed) { frameView(box); framed = true; }
       }
       controls.update();
