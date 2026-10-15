@@ -9,9 +9,23 @@ export type Part =
   | { kind: 'disc'; id: string; center: V3; diameter: number }
   | { kind: 'ring'; id: string; center: V3; teeth: number }
   | { kind: 'box'; id: string; center: V3; size: V3; mat: Mat }
-  | { kind: 'bar'; id: 'bar'; center: V3; width: number; reach: number; drop: number }
+  | { kind: 'bar'; id: 'bar'; style: BarStyle; center: V3; width: number; reach: number; drop: number; flare: number; rise: number; backsweep: number; upsweep: number }
   | { kind: 'saddle'; id: 'saddle'; top: V3; length: number; width: number }
   | { kind: 'chain'; id: 'chain'; path: V3[] };
+
+export const BAR_STYLES = ['road', 'gravel', 'flat', 'riser'] as const;
+export type BarStyle = (typeof BAR_STYLES)[number];
+export type Cockpit = { bar: BarStyle; spacers: number; stemLength: number; stemAngle: number }; // mm, mm, deg
+export const DEFAULT_COCKPIT: Cockpit = { bar: 'road', spacers: 20, stemLength: 100, stemAngle: -6 };
+export const COCKPIT_LIMITS = { spacers: [0, 60], stemLength: [60, 140], stemAngle: [-17, 17] } as const;
+
+type BarShape = { width: number; reach: number; drop: number; flare: number; rise: number; backsweep: number; upsweep: number };
+const BARS: Record<BarStyle, BarShape> = {
+  road: { width: 420, reach: 80, drop: 125, flare: 0, rise: 0, backsweep: 0, upsweep: 0 },
+  gravel: { width: 440, reach: 75, drop: 115, flare: 16, rise: 0, backsweep: 0, upsweep: 0 },
+  flat: { width: 720, reach: 0, drop: 0, flare: 0, rise: 0, backsweep: 9, upsweep: 0 },
+  riser: { width: 760, reach: 0, drop: 0, flare: 0, rise: 25, backsweep: 9, upsweep: 5 },
+};
 
 const rad = (d: number) => (d * Math.PI) / 180;
 const v = (p: Pt, z = 0): V3 => [p.x, p.y, z];
@@ -49,7 +63,7 @@ function chainPath(axle: Pt, R: number, r: number, pTop: Pt, pBot: Pt, ringZ: nu
   ];
 }
 
-export function buildModel(b: Base, rider?: Rider): Part[] {
+export function buildModel(b: Base, rider?: Rider, cockpit: Cockpit = DEFAULT_COCKPIT): Part[] {
   const p = points(b);
   const d = derived(b);
   const a = rad(b.headAngle), s = rad(b.seatAngle);
@@ -76,15 +90,18 @@ export function buildModel(b: Base, rider?: Rider): Part[] {
   }
   parts.push({ kind: 'box', id: 'forkCrown', center: v(p.crown), size: [40, 30, 120], mat: 'frame' });
 
-  // Cockpit
-  const spacerTop = add(p.htTop, up, 20);
-  const clamp = add(p.htTop, up, 40);
-  tube('spacers', [v(p.htTop), v(spacerTop)], [20, 20], 'dark');
-  tube('steerer', [v(p.crown), v(add(p.htTop, up, 60))], [14, 14], 'metal');
-  const stemAngle = Math.PI / 2 - a - rad(6); // −6° to the perpendicular of the steerer
-  const stemEnd = add(clamp, { x: Math.cos(stemAngle), y: Math.sin(stemAngle) }, 100);
+  // Cockpit: spacer rings (10 mm, then a 5 mm one), clamp 40 mm tall, 5 mm top cap on the steerer.
+  const alongSteer = (k: number) => v(add(p.htTop, up, k));
+  const rings = [...Array(Math.floor(cockpit.spacers / 10)).fill(10), ...(cockpit.spacers % 10 ? [cockpit.spacers % 10] : [])] as number[];
+  let h = 0;
+  rings.forEach((t, i) => { tube(`spacer${i}`, [alongSteer(h), alongSteer(h + t)], [20, 20], 'dark'); h += t; });
+  const clamp = add(p.htTop, up, cockpit.spacers + 20);
+  tube('steerer', [v(p.crown), alongSteer(cockpit.spacers + 40)], [14, 14], 'metal');
+  tube('topCap', [alongSteer(cockpit.spacers + 40), alongSteer(cockpit.spacers + 45)], [18, 18], 'dark');
+  const dir = rad(90 - b.headAngle + cockpit.stemAngle);
+  const stemEnd = add(clamp, { x: Math.cos(dir), y: Math.sin(dir) }, cockpit.stemLength);
   tube('stem', [v(clamp), v(stemEnd)], [16, 16], 'dark');
-  parts.push({ kind: 'bar', id: 'bar', center: v(stemEnd), width: 420, reach: 80, drop: 125 });
+  parts.push({ kind: 'bar', id: 'bar', style: cockpit.bar, center: v(stemEnd), ...BARS[cockpit.bar] });
 
   // Wheels and brakes
   parts.push({ kind: 'wheel', id: 'frontWheel', center: v(p.frontAxle), rim: b.rimFront, tire: b.tireFront, spokes: 28, flangeZ: 35 });

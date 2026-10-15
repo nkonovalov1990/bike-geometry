@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULTS, points, type Base } from './geometry';
-import { buildModel, pitchRadius, type Part } from './model3d';
+import { BAR_STYLES, DEFAULT_COCKPIT, buildModel, pitchRadius, type Cockpit, type Part } from './model3d';
 
 const get = <K extends Part['kind']>(m: Part[], id: string) => m.find((p) => p.id === id) as Extract<Part, { kind: K }>;
 
@@ -62,5 +62,59 @@ describe('buildModel', () => {
     expect(new Set(parts.map((x) => x.id)).size).toBe(parts.length);
     const nums = JSON.stringify(parts).match(/-?[\d.]+(e-?\d+)?|null/g)!;
     expect(nums).not.toContain('null');
+  });
+
+  describe('cockpit', () => {
+    const a = (DEFAULTS.headAngle * Math.PI) / 180;
+    const up = [-Math.cos(a), Math.sin(a)];
+    const at = (k: number) => [p.htTop.x + up[0]! * k, p.htTop.y + up[1]! * k];
+    const bar = (c: Partial<Cockpit>) => buildModel(DEFAULTS, undefined, { ...DEFAULT_COCKPIT, ...c });
+
+    it.each([0, 20, 45])('spacers %i: stem clamp is spacers+20 above the head tube, steerer ends at spacers+40', (spacers) => {
+      const parts = bar({ spacers });
+      const stem = get<'tube'>(parts, 'stem').path[0]!;
+      expect(stem[0]).toBeCloseTo(at(spacers + 20)[0]!, 6);
+      expect(stem[1]).toBeCloseTo(at(spacers + 20)[1]!, 6);
+      const top = get<'tube'>(parts, 'steerer').path.at(-1)!;
+      expect([top[0], top[1]]).toEqual([expect.closeTo(at(spacers + 40)[0]!, 6), expect.closeTo(at(spacers + 40)[1]!, 6)]);
+      const cap = get<'tube'>(parts, 'topCap').path;
+      expect(cap[0]).toEqual(top);
+      expect(Math.hypot(cap[1]![0] - cap[0]![0], cap[1]![1] - cap[0]![1])).toBeCloseTo(5, 6);
+    });
+
+    it('spacer rings: 25 mm is 10 + 10 + 5 stacked from the head tube; 0 has none', () => {
+      const rings = bar({ spacers: 25 }).filter((x) => x.id.startsWith('spacer')) as Extract<Part, { kind: 'tube' }>[];
+      const heights = rings.map((r) => Math.hypot(r.path[1]![0] - r.path[0]![0], r.path[1]![1] - r.path[0]![1]));
+      expect(heights.map((h) => +h.toFixed(6))).toEqual([10, 10, 5]);
+      expect(heights.reduce((x, y) => x + y)).toBeCloseTo(25, 6);
+      expect(rings[0]!.path[0]![0]).toBeCloseTo(p.htTop.x, 6);
+      expect(bar({ spacers: 0 }).filter((x) => x.id.startsWith('spacer'))).toHaveLength(0);
+    });
+
+    it.each<[number, number]>([[100, -6], [120, 10]])('stem length %i, angle %i: end = clamp + length * (cos, sin)', (stemLength, stemAngle) => {
+      const parts = bar({ stemLength, stemAngle });
+      const [c, e] = get<'tube'>(parts, 'stem').path as [number, number, number][];
+      const th = ((90 - DEFAULTS.headAngle + stemAngle) * Math.PI) / 180;
+      expect(e[0] - c![0]).toBeCloseTo(stemLength * Math.cos(th), 6);
+      expect(e[1] - c![1]).toBeCloseTo(stemLength * Math.sin(th), 6);
+      expect(get<'bar'>(parts, 'bar').center).toEqual(e);
+    });
+
+    it('bar presets', () => {
+      const pick = (style: Cockpit['bar']) => {
+        const { width, reach, drop, flare, rise, backsweep, upsweep } = get<'bar'>(bar({ bar: style }), 'bar');
+        return { width, reach, drop, flare, rise, backsweep, upsweep };
+      };
+      expect(pick('road')).toEqual({ width: 420, reach: 80, drop: 125, flare: 0, rise: 0, backsweep: 0, upsweep: 0 });
+      expect(pick('gravel')).toMatchObject({ width: 440, reach: 75, drop: 115, flare: 16 });
+      expect(pick('flat')).toMatchObject({ width: 720, rise: 0, backsweep: 9, upsweep: 0 });
+      expect(pick('riser')).toMatchObject({ width: 760, rise: 25, backsweep: 9, upsweep: 5 });
+    });
+
+    it.each(BAR_STYLES.flatMap((s) => [-17, 17].map((stemAngle) => [s, stemAngle] as const)))('%s, stem angle %i, extremes: unique ids, finite', (style, stemAngle) => {
+      const parts = bar({ bar: style, spacers: 60, stemLength: 140, stemAngle });
+      expect(new Set(parts.map((x) => x.id)).size).toBe(parts.length);
+      expect(JSON.stringify(parts).match(/null/g)).toBeNull();
+    });
   });
 });

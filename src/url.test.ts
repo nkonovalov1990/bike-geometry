@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULTS, type FieldKey } from './geometry';
+import { DEFAULT_COCKPIT } from './model3d';
 import { decode, encode, type State } from './url';
 
 describe('url', () => {
@@ -54,5 +55,23 @@ describe('url', () => {
   it('unknown view falls back to the drawing', () => {
     expect(decode('#view=4d').view).toBeUndefined();
     expect(decode('').view).toBeUndefined();
+  });
+
+  it('round-trips a non-default cockpit, only differing fields in the hash', () => {
+    const s: State = { base: { ...DEFAULTS }, locks: new Set<FieldKey>(), cockpit: { bar: 'riser', spacers: 35, stemLength: 90, stemAngle: 12 } };
+    expect(decode(encode(s))).toEqual(s);
+    const part: State = { ...s, cockpit: { ...DEFAULT_COCKPIT, bar: 'flat' } };
+    const hash = encode(part);
+    expect(hash).toContain('bar=flat');
+    expect(hash).not.toMatch(/spacers|stem/);
+    expect(decode(hash)).toEqual(part);
+  });
+
+  it('out-of-range or garbage cockpit values fall back to defaults', () => {
+    expect(decode('#bar=tri&spacers=90&stem=abc&stemAngle=40').cockpit).toBeUndefined();
+    expect(decode('#bar=gravel&spacers=-5&stem=200').cockpit).toEqual({ ...DEFAULT_COCKPIT, bar: 'gravel' });
+    expect(decode('#spacers=12').cockpit).toEqual({ ...DEFAULT_COCKPIT, spacers: 10 });
+    expect(decode('#spacers=20&stem=100&stemAngle=-6').cockpit).toBeUndefined();
+    expect(decode('').cockpit).toBeUndefined();
   });
 });
