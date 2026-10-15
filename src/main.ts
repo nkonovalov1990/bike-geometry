@@ -2,6 +2,7 @@ import './style.css';
 import { ANGLE_KEYS, BASE_KEYS, DERIVED_KEYS, RIM_SIZES, field, type FieldKey } from './geometry';
 import { conflicts, riderFrom } from './fit';
 import { helpHtml } from './help';
+import { buildModel, type Part } from './model3d';
 import { render } from './render';
 import { solve, type SolveError } from './solver';
 import { decode, encode } from './url';
@@ -43,8 +44,11 @@ const ERRORS: Record<SolveError | 'nan', string> = {
 const state = decode(location.hash);
 const form = document.querySelector<HTMLFormElement>('#fields')!;
 const svg = document.querySelector<SVGSVGElement>('#drawing')!;
+const scene3d = document.querySelector<HTMLElement>('#scene3d')!;
 const rows = new Map<FieldKey, { input: HTMLInputElement | HTMLSelectElement; lock: HTMLInputElement; error: HTMLElement; row: HTMLElement; tip: HTMLElement }>();
 
+let scene: { update(parts: Part[]): void; dispose(): void } | undefined;
+let loading: Promise<void> | undefined;
 let issues = new Map<FieldKey, string>();
 const RIM_KEYS = new Set<FieldKey>(['rimFront', 'rimRear']);
 
@@ -105,6 +109,7 @@ function update() {
     r.tip.innerHTML = helpHtml(key, state.rider, issues.get(key));
   }
   render(svg, state.base, new Set(issues.keys()));
+  if (state.view === '3d') scene?.update(buildModel(state.base, state.rider));
   history.replaceState(null, '', encode(state));
 }
 
@@ -163,3 +168,36 @@ svg.addEventListener('focusout', (e) => labelOf(e) && hideSvgTip());
 // Tabbing to an off-screen label scrolls it into view after focusin: follow it instead of hiding.
 addEventListener('scroll', () => (tipTarget && tipTarget === document.activeElement ? placeSvgTip(tipTarget) : hideSvgTip()), { passive: true });
 update(); // after the tooltip is set up: update() hides it
+
+// three.js is loaded on first use of the 3D view; the container must be visible before mount() (it sizes the camera).
+async function show3d() {
+  if (!scene) {
+    loading ??= (async () => {
+      scene3d.textContent = 'Загрузка 3D…';
+      try {
+        const { mount } = await import('./scene3d');
+        if (state.view !== '3d') return; // switched back while loading
+        scene3d.textContent = '';
+        scene = mount(scene3d);
+      } catch {
+        scene3d.textContent = 'Не удалось загрузить 3D';
+      } finally {
+        loading = undefined;
+      }
+    })();
+    await loading;
+  }
+  if (state.view === '3d') scene?.update(buildModel(state.base, state.rider));
+}
+
+function setView(v: '2d' | '3d') {
+  state.view = v === '3d' ? '3d' : undefined;
+  svg.toggleAttribute('hidden', v === '3d');
+  scene3d.hidden = v !== '3d';
+  for (const id of ['2d', '3d']) document.querySelector(`#tab-${id}`)!.setAttribute('aria-selected', String(id === v));
+  history.replaceState(null, '', encode(state));
+  if (v === '3d') void show3d();
+}
+document.querySelector('#tab-2d')!.addEventListener('click', () => setView('2d'));
+document.querySelector('#tab-3d')!.addEventListener('click', () => setView('3d'));
+if (state.view === '3d') setView('3d');

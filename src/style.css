@@ -56,7 +56,13 @@ legend { font-weight: 600; padding: 0 4px; }
 .tip ul { padding: 0; list-style: none; color: var(--ink-2); }
 .error { grid-column: 1 / -1; margin: 0; color: var(--danger); font-size: 12px; }
 .error:empty { display: none; }
-.drawing { position: sticky; top: 16px; width: 100%; max-height: calc(100vh - 32px); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.view { position: sticky; top: 16px; }
+.view-tabs { display: inline-flex; margin-bottom: 8px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.view-tabs button { padding: 4px 14px; font: inherit; color: var(--ink); background: var(--panel); border: 0; cursor: pointer; }
+.view-tabs button + button { border-left: 1px solid var(--line); }
+.view-tabs button[aria-selected='true'] { background: var(--accent); color: var(--bg); }
+.scene3d { width: 100%; aspect-ratio: 16 / 10; max-height: calc(100vh - 80px); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; touch-action: none; }
+.drawing { width: 100%; max-height: calc(100vh - 80px); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
 .drawing line { stroke-linecap: round; }
 .tube { stroke: var(--frame); stroke-width: 8; }
 .fork { stroke: var(--frame); stroke-width: 6; }
@@ -81,5 +87,5 @@ legend { font-weight: 600; padding: 0 4px; }
 @media (max-width: 760px) {
   .app { grid-template-columns: 1fr; }
   .dim text { font-size: 48px; stroke-width: 8px; }
-  .drawing { position: static; order: -1; }
+  .view { position: static; order: -1; }
 }

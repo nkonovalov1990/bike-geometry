@@ -8,7 +8,14 @@
   <body>
     <main class="app">
       <form id="fields" class="fields"></form>
-      <svg id="drawing" class="drawing" role="img" aria-label="Чертёж рамы сбоку"></svg>
+      <section class="view">
+        <div class="view-tabs" role="tablist">
+          <button type="button" role="tab" id="tab-2d" aria-selected="true">Схема</button>
+          <button type="button" role="tab" id="tab-3d" aria-selected="false">3D</button>
+        </div>
+        <svg id="drawing" class="drawing" role="img" aria-label="Чертёж рамы сбоку"></svg>
+        <div id="scene3d" class="scene3d" hidden></div>
+      </section>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>
