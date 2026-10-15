@@ -5,7 +5,7 @@ const f = (n: number) => n.toFixed(1);
 // SVG y grows downward; geometry y grows upward.
 const line = (a: Pt, b: Pt, cls: string) => `<line class="${cls}" x1="${f(a.x)}" y1="${f(-a.y)}" x2="${f(b.x)}" y2="${f(-b.y)}"/>`;
 
-const num = (n: number) => n.toLocaleString('ru-RU', { maximumFractionDigits: 1 });
+const num = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 1 });
 const text = (at: Pt, s: string, anchor: string, key = '') =>
   `<text${key ? ` class="dim-label" data-key="${key}" tabindex="0"` : ''} x="${f(at.x)}" y="${f(-at.y)}" text-anchor="${anchor}">${s}</text>`;
 // Dimension line a→b with end ticks (perpendicular, ±12 mm) and a label.
@@ -66,12 +66,12 @@ export function render(svg: SVGSVGElement, b: Base, warn: ReadonlySet<FieldKey> 
     arc(p.htTop, 90, 0, hta), text(polar(p.htTop, 125, hta / 2), `${num(b.headAngle)}°`, 'start', 'headAngle'),
     arc(p.bb, 110, 180, sta), text(polar(p.bb, 145, (180 + sta) / 2), `${num(b.seatAngle)}°`, 'end', 'seatAngle'),
     text({ x: (p.axisGround.x + p.frontAxle.x) / 2, y: p.groundY - 35 }, `Trail ${num(d.trail)}`, 'middle', 'trail'),
-    dim({ x: 40, y: p.groundY }, { x: 40, y: 0 }, `BB ${num(d.bbHeight)}`, { x: 60, y: p.groundY / 2 }, 'start', 'bbHeight'),
+    dim({ x: 40, y: p.groundY }, { x: 40, y: 0 }, `BB Height ${num(d.bbHeight)}`, { x: 60, y: p.groundY / 2 }, 'start', 'bbHeight'),
     ext(p.rearAxle, { x: p.rearAxle.x + 170, y: p.rearAxle.y }), arc(p.rearAxle, 130, 0, -d.chainstayAngle), (() => { const csAt = polar(p.rearAxle, 200, -d.chainstayAngle); return text({ x: csAt.x, y: csAt.y - 45 }, `${num(d.chainstayAngle)}°`, 'middle', 'chainstayAngle'); })(),
     ext(p.seatTop, { x: p.seatTop.x + 170, y: p.seatTop.y }), arc(p.seatTop, 120, 0, d.topTubeAngle), (() => { const ttAt = polar(p.seatTop, 160, 0); return text({ x: ttAt.x, y: ttAt.y - 40 }, `${num(d.topTubeAngle)}°`, 'middle', 'topTubeAngle'); })(),
     (() => { const mid = { x: (p.seatTop.x + p.htTop.x) / 2, y: (p.seatTop.y + p.htTop.y) / 2 }; return dim({ x: mid.x, y: p.groundY }, mid, `Standover ${num(d.standover)}`, { x: mid.x + 20, y: (p.groundY + mid.y) / 2 }, 'start', 'standover'); })(),
-    dim({ x: p.rearAxle.x, y: wbY }, { x: p.frontAxle.x, y: wbY }, `База ${num(d.wheelbase)}`, { x: d.wheelbase / 2 + p.rearAxle.x, y: wbY + 15 }, 'middle', 'wheelbase'),
-    dim({ x: rearEdge.x, y: tlY }, { x: frontEdge.x, y: tlY }, `Длина ${num(d.totalLength)}`, { x: (rearEdge.x + frontEdge.x) / 2, y: tlY + 15 }, 'middle', 'totalLength'),
+    dim({ x: p.rearAxle.x, y: wbY }, { x: p.frontAxle.x, y: wbY }, `Wheelbase ${num(d.wheelbase)}`, { x: d.wheelbase / 2 + p.rearAxle.x, y: wbY + 15 }, 'middle', 'wheelbase'),
+    dim({ x: rearEdge.x, y: tlY }, { x: frontEdge.x, y: tlY }, `Length ${num(d.totalLength)}`, { x: (rearEdge.x + frontEdge.x) / 2, y: tlY + 15 }, 'middle', 'totalLength'),
     '</g>',
   ].join('');
   for (const el of svg.querySelectorAll<SVGElement>('[data-key]')) el.classList.toggle('warn', warn.has(el.dataset.key as FieldKey));

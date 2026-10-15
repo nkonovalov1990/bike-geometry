@@ -8,30 +8,30 @@ import { solve, type SolveError } from './solver';
 import { decode, encode } from './url';
 
 const LABELS: Record<FieldKey, string> = {
-  stack: 'Stack, мм',
-  reach: 'Reach, мм',
-  headAngle: 'Угол рулевой, °',
-  seatAngle: 'Угол подседельной, °',
-  headTube: 'Длина рулевой, мм',
-  chainstay: 'Перья, мм',
-  bbDrop: 'BB drop, мм',
-  forkOffset: 'Офсет вилки, мм',
-  lowerStack: 'Нижний стек, мм',
-  seatTube: 'Подседельная, мм',
-  rimFront: 'Обод передний, мм',
-  rimRear: 'Обод задний, мм',
-  tireFront: 'Шина передняя, мм',
-  tireRear: 'Шина задняя, мм',
-  forkLength: 'Вилка ось–коронка, мм',
-  trail: 'Trail, мм',
-  wheelbase: 'Колёсная база, мм',
-  totalLength: 'Общая длина, мм',
-  frontCenter: 'Front center, мм',
-  bbHeight: 'Высота каретки, мм',
-  chainstayAngle: 'Угол перьев, °',
-  topTubeAngle: 'Угол верхней трубы, °',
-  standover: 'Standover, мм',
-  effectiveTopTube: 'Эфф. верх. труба, мм',
+  stack: 'Stack (mm)',
+  reach: 'Reach (mm)',
+  headAngle: 'Head Tube Angle (°)',
+  seatAngle: 'Seat Tube Angle, eff. (°)',
+  headTube: 'Head Tube Length (mm)',
+  chainstay: 'Chainstay Length (mm)',
+  bbDrop: 'BB Drop (mm)',
+  forkOffset: 'Fork Offset (mm)',
+  lowerStack: 'Lower Headset Stack (mm)',
+  seatTube: 'Seat Tube Length (mm)',
+  rimFront: 'Front Rim BSD (mm)',
+  rimRear: 'Rear Rim BSD (mm)',
+  tireFront: 'Front Tire Width (mm)',
+  tireRear: 'Rear Tire Width (mm)',
+  forkLength: 'Fork Length, A-C (mm)',
+  trail: 'Trail (mm)',
+  wheelbase: 'Wheelbase (mm)',
+  totalLength: 'Bike Length (mm)',
+  frontCenter: 'Front Center (mm)',
+  bbHeight: 'BB Height (mm)',
+  chainstayAngle: 'Chainstay Angle (°)',
+  topTubeAngle: 'Top Tube Angle (°)',
+  standover: 'Standover (mm)',
+  effectiveTopTube: 'Top Tube, eff. (mm)',
 };
 
 const ERRORS: Record<SolveError | 'nan', string> = {
@@ -64,7 +64,7 @@ function group(title: string, keys: readonly FieldKey[]) {
       : `<input id="f-${key}" type="number" step="${ANGLE_KEYS.has(key) ? 0.1 : 1}" aria-describedby="tip-${key}">`;
     row.innerHTML = `<label for="f-${key}">${LABELS[key]}</label>
       ${control}
-      <input type="checkbox" class="lock" title="Закрепить" aria-label="Закрепить: ${LABELS[key]}">
+      <input type="checkbox" class="lock" title="Lock" aria-label="Lock: ${LABELS[key]}">
       <p class="error" role="alert"></p>
       <div class="tip" role="tooltip" id="tip-${key}">${helpHtml(key)}</div>`;
     const tip = row.querySelector<HTMLElement>('.tip')!;
@@ -116,9 +116,9 @@ function update() {
 
 const riderFs = document.createElement('fieldset');
 riderFs.className = 'rider';
-riderFs.innerHTML = `<legend>Райдер</legend>
-  <div class="row"><label for="r-height">Рост, см</label><input id="r-height" type="number" step="1" min="100" max="230" placeholder="—"></div>
-  <div class="row"><label for="r-inseam">Длина ног по шву, см</label><input id="r-inseam" type="number" step="0.5" min="40" max="120" placeholder="оценка"></div>`;
+riderFs.innerHTML = `<legend>Rider</legend>
+  <div class="row"><label for="r-height">Height (cm)</label><input id="r-height" type="number" step="1" min="100" max="230" placeholder="—"></div>
+  <div class="row"><label for="r-inseam">Inseam (cm)</label><input id="r-inseam" type="number" step="0.5" min="40" max="120" placeholder="оценка"></div>`;
 form.append(riderFs);
 const heightInput = riderFs.querySelector<HTMLInputElement>('#r-height')!;
 const inseamInput = riderFs.querySelector<HTMLInputElement>('#r-inseam')!;
@@ -129,16 +129,16 @@ for (const el of [heightInput, inseamInput]) el.addEventListener('change', () =>
   update();
 });
 
-const BAR_LABELS: Record<BarStyle, string> = { road: 'Шоссейный', gravel: 'Гревел', flat: 'Прямой', riser: 'Райзер' };
-const DIM_LABELS: Record<keyof BarDims, string> = { width: 'Ширина руля, мм', reach: 'Вылет, мм', drop: 'Хват вниз, мм', flare: 'Развал, °', rise: 'Подъём, мм', backsweep: 'Отгиб назад, °', upsweep: 'Отгиб вверх, °' };
+const BAR_LABELS: Record<BarStyle, string> = { road: 'Road drop', gravel: 'Gravel drop', flat: 'Flat', riser: 'MTB riser' };
+const DIM_LABELS: Record<keyof BarDims, string> = { width: 'Bar Width (mm)', reach: 'Bar Reach (mm)', drop: 'Bar Drop (mm)', flare: 'Flare (°)', rise: 'Rise (mm)', backsweep: 'Backsweep (°)', upsweep: 'Upsweep (°)' };
 const cockpitFs = document.createElement('fieldset');
 cockpitFs.className = 'rider';
 const num = (id: string, label: string, [min, max]: readonly number[], step: number) =>
   `<div class="row"><label for="${id}">${label}</label><input id="${id}" type="number" min="${min}" max="${max}" step="${step}"></div>`;
-cockpitFs.innerHTML = `<legend>Кокпит (3D)</legend>
-  <div class="row"><label for="c-bar">Руль</label><select id="c-bar">${BAR_STYLES.map((b) => `<option value="${b}">${BAR_LABELS[b]}</option>`).join('')}</select></div>
+cockpitFs.innerHTML = `<legend>Cockpit (3D)</legend>
+  <div class="row"><label for="c-bar">Handlebar</label><select id="c-bar">${BAR_STYLES.map((b) => `<option value="${b}">${BAR_LABELS[b]}</option>`).join('')}</select></div>
   <div id="c-dims"></div>
-  ${num('c-spacers', 'Проставки, мм', COCKPIT_LIMITS.spacers, 5)}${num('c-stem', 'Вынос, мм', COCKPIT_LIMITS.stemLength, 10)}${num('c-angle', 'Угол выноса, °', COCKPIT_LIMITS.stemAngle, 1)}`;
+  ${num('c-spacers', 'Spacers (mm)', COCKPIT_LIMITS.spacers, 5)}${num('c-stem', 'Stem Length (mm)', COCKPIT_LIMITS.stemLength, 10)}${num('c-angle', 'Stem Angle (°)', COCKPIT_LIMITS.stemAngle, 1)}`;
 form.append(cockpitFs);
 const cInputs = {
   bar: cockpitFs.querySelector<HTMLSelectElement>('#c-bar')!,
@@ -185,8 +185,8 @@ function commitCockpit(styleChanged = false) {
 showCockpit(state.cockpit ?? DEFAULT_COCKPIT);
 cInputs.bar.addEventListener('change', () => commitCockpit(true));
 for (const el of [cInputs.spacers, cInputs.stemLength, cInputs.stemAngle]) el.addEventListener('change', () => commitCockpit());
-group('Базовые', BASE_KEYS);
-group('Производные', DERIVED_KEYS);
+group('Frame', BASE_KEYS);
+group('Calculated', DERIVED_KEYS);
 form.addEventListener('submit', (e) => e.preventDefault());
 window.addEventListener('hashchange', () => location.reload());
 
