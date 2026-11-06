@@ -10,10 +10,10 @@ export type Pt = { x: number; y: number };
 export const SOLVABLE: readonly BaseKey[] = ['stack', 'reach', 'headAngle', 'seatAngle', 'headTube', 'chainstay', 'bbDrop', 'forkOffset', 'seatTube'];
 export const ANGLE_KEYS: ReadonlySet<FieldKey> = new Set<FieldKey>(['headAngle', 'seatAngle', 'chainstayAngle', 'topTubeAngle']);
 
-// Kona Dew, size L (published chart; 29″ × 54 mm tyres give its 295 BB height, lower stack 2 gives its 430 fork).
+// Kona Dew Deluxe, size L (published chart; 650b × 47 mm as specced, lower stack 4 gives its 410 fork).
 export const DEFAULTS: Base = {
-  stack: 614, reach: 460, headAngle: 69, seatAngle: 73, headTube: 170, chainstay: 470,
-  bbDrop: 70, forkOffset: 50, lowerStack: 2, seatTube: 520, rimFront: 622, rimRear: 622, tireFront: 54, tireRear: 54,
+  stack: 644, reach: 439, headAngle: 70, seatAngle: 73, headTube: 215, chainstay: 450,
+  bbDrop: 70, forkOffset: 50, lowerStack: 4, seatTube: 520, rimFront: 584, rimRear: 584, tireFront: 47, tireRear: 47,
 };
 
 // ISO bead seat diameters for common wheel sizes.
