@@ -113,15 +113,34 @@ function scale(m: Metric, near: Archetype): string {
     <div class="track">${dots}<i class="mark" style="left:${scalePos(m, m.value) * 100}%"></i></div>
     <div class="ends"><span>${m.left}</span><span>${m.right}</span></div><p class="why">${m.why}</p></div>`;
 }
+// Radar: one axis per metric, centre = left end of its scale; dashed polygon = nearest archetype.
+function radar(ms: Metric[], near: Archetype): string {
+  const R = 120, c = 170;
+  const at = (i: number, r: number) => { const a = -Math.PI / 2 + (i * 2 * Math.PI) / ms.length; return [c + r * Math.cos(a), c + r * Math.sin(a)]; };
+  const poly = (vals: number[], cls: string) => `<polygon class="${cls}" points="${vals.map((v, i) => at(i, 12 + v * (R - 12)).map((n) => n.toFixed(1)).join(',')).join(' ')}"/>`;
+  const web = [0.25, 0.5, 0.75, 1].map((r) => poly(ms.map(() => r), 'web')).join('');
+  const labels = ms.map((m, i) => { const [x, y] = at(i, R + 18); return `<text data-field="${m.field}" x="${x!.toFixed(1)}" y="${(y! + 4).toFixed(1)}" text-anchor="middle">${m.title}</text>`; }).join('');
+  return `<svg class="radar" viewBox="-40 0 420 340" role="img" aria-label="Ride character radar">${web}${poly(ms.map((m) => scalePos(m, near.v[m.key])), 'ref')}${poly(ms.map((m) => scalePos(m, m.value)), 'me')}${labels}</svg>
+    <p class="why">Заливка — этот байк, пунктир — ${near.name}. Центр — левый край шкалы, край — правый.</p>`;
+}
+let charView: 'scales' | 'radar' = 'scales';
 function drawCharacter() {
   const ms = metrics(state.base);
   const [n1, n2] = nearest(ms);
   const toe = toeClearance(state.base);
-  character.innerHTML = `<h2>Ride character</h2>
+  const tab = (v: typeof charView, label: string) => `<button type="button" role="tab" data-view="${v}" aria-selected="${charView === v}">${label}</button>`;
+  character.innerHTML = `<div class="char-head"><h2>Ride character</h2><div class="view-tabs" role="tablist" aria-label="Character view">${tab('scales', 'Scales')}${tab('radar', 'Radar')}</div></div>
     <p class="tags">Похоже на: <b>${n1!.name}</b><b>${n2!.name}</b></p>
     <p class="why${toe < 0 ? ' warnline' : ''}">${toe < 0 ? `Носок может задеть переднее колесо в повороте (≈${fmt0(-toe)} мм)` : `Запас от носка до переднего колеса ≈${fmt0(toe)} мм`}</p>
-    ${ms.map((m) => scale(m, n1!)).join('')}`;
+    ${charView === 'radar' ? radar(ms, n1!) : ms.map((m) => scale(m, n1!)).join('')}`;
 }
+character.addEventListener('click', (e) => {
+  const v = (e.target as Element).closest<HTMLElement>('[data-view]')?.dataset.view as typeof charView | undefined;
+  if (!v || v === charView) return;
+  charView = v;
+  drawCharacter();
+  character.querySelector<HTMLElement>(`[data-view="${v}"]`)!.focus();
+});
 character.addEventListener('mouseover', (e) => {
   const k = ((e.target as Element).closest<HTMLElement>('[data-field]')?.dataset.field ?? null) as FieldKey | null;
   if (k !== hovered) showHighlight((hovered = k));

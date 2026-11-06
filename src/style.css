@@ -92,7 +92,17 @@ legend { font-weight: 600; padding: 0 4px; }
 .dim-label.on { fill: var(--accent); }
 .fields .row:hover, .fields .row:focus-within { background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 4px; }
 .character { padding: 16px 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
-.character h2 { margin: 0 0 12px; font-size: 15px; }
+.character h2 { margin: 0; font-size: 15px; }
+.character .char-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 0 0 12px; }
+.character .char-head .view-tabs { margin: 0; }
+.character .view-tabs button { padding: 2px 10px; font-size: 12px; }
+.radar { display: block; width: 100%; margin: 16px 0 0; }
+.radar polygon { stroke-width: 2; }
+.radar .web { fill: none; stroke: var(--line); }
+.radar .me { fill: color-mix(in srgb, var(--accent) 30%, transparent); stroke: var(--accent); }
+.radar .ref { fill: none; stroke: var(--ink-2); stroke-dasharray: 5 4; }
+.radar text { fill: var(--ink-2); font-size: 16px; cursor: default; }
+.radar text:hover { fill: var(--accent); }
 .character .tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 8px; }
 .character .tags b { padding: 2px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); font-weight: 500; }
 .character .scale { margin: 22px 0 0; cursor: default; }
