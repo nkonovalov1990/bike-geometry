@@ -104,7 +104,11 @@ const showHighlight = (_?: unknown) => highlight(svg, state.base, hovered ?? foc
 const character = document.querySelector<HTMLElement>('#character')!;
 const fmt0 = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 0 });
 function scale(m: Metric, near: Archetype): string {
-  const dots = ARCHETYPES.map((a) => `<i class="arch${a === near ? ' near' : ''}" title="${a.name}" style="left:${scalePos(m, a.v[m.key]) * 100}%"></i>`).join('');
+  const dots = ARCHETYPES.map((a) => {
+    const x = scalePos(m, a.v[m.key]);
+    const side = x < 0.3 ? ' l' : x > 0.7 ? ' r' : ''; // keep the name inside the panel near the ends
+    return `<i class="arch${a === near ? ' near' : ''}${side}" data-name="${a.name}" style="left:${x * 100}%"></i>`;
+  }).join('');
   return `<div class="scale" data-field="${m.field}"><div class="head">${m.title} <span>${m.shown}</span></div>
     <div class="track">${dots}<i class="mark" style="left:${scalePos(m, m.value) * 100}%"></i></div>
     <div class="ends"><span>${m.left}</span><span>${m.right}</span></div><p class="why">${m.why}</p></div>`;
@@ -184,7 +188,11 @@ const cInputs = {
 const dimsBox = cockpitFs.querySelector<HTMLElement>('#c-dims')!;
 const dimInputs = new Map<keyof BarDims, HTMLInputElement>();
 const dimKeys = (bar: BarStyle) => Object.keys(BAR_LIMITS[bar]) as (keyof BarDims)[];
+let dimsBar: BarStyle | undefined;
 const showDims = (bar: BarStyle, dims: BarDims) => { // only the fields the style has
+  // Rebuild only on a style change: recreating the inputs would drop focus (arrow keys stop after one step).
+  if (bar === dimsBar) return void dimInputs.forEach((el, k) => (el.value = String(dims[k])));
+  dimsBar = bar;
   dimsBox.innerHTML = dimKeys(bar).map((k) => num(`c-${k}`, DIM_LABELS[k], BAR_LIMITS[bar][k]!, 1)).join('');
   dimInputs.clear();
   for (const k of dimKeys(bar)) {

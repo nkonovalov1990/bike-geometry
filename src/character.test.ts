@@ -12,7 +12,7 @@ describe('character', () => {
     const d = derived(ROAD);
     expect(m.trail).toBeCloseTo(d.trail);
     expect(m.stackReach).toBeCloseTo(ROAD.stack / ROAD.reach);
-    expect(m.balance).toBeCloseTo(d.frontCenter / ROAD.chainstay);
+    expect(m.balance).toBeCloseTo(ROAD.chainstay / d.frontCenter);
   });
 
   it('scale position is clamped', () => {
