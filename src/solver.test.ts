@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULTS, SOLVABLE, derived, type Base, type FieldKey } from './geometry';
+import { SOLVABLE, derived, type Base, type FieldKey } from './geometry';
+import { ROAD } from './testing';
 import { solve, solveLinear, type SolveResult } from './solver';
 
 const locks = (...k: FieldKey[]) => new Set<FieldKey>(k);
@@ -7,7 +8,7 @@ const ok = (r: SolveResult): Base => {
   if (!r.ok) throw new Error(`expected ok, got ${r.error}`);
   return r.base;
 };
-const T0 = derived(DEFAULTS);
+const T0 = derived(ROAD);
 
 describe('solveLinear', () => {
   it('solves a 2x2 system', () => {
@@ -22,7 +23,7 @@ describe('solveLinear', () => {
 
 describe('solve', () => {
   it('top tube angle edit with stack, reach and seat angle locked changes only seat tube', () => {
-    const b = ok(solve(DEFAULTS, { key: 'topTubeAngle', value: 10 }, locks('stack', 'reach', 'seatAngle')));
+    const b = ok(solve(ROAD, { key: 'topTubeAngle', value: 10 }, locks('stack', 'reach', 'seatAngle')));
     expect(derived(b).topTubeAngle).toBeCloseTo(10, 5);
     expect(b.stack).toBe(560);
     expect(b.reach).toBe(385);
@@ -31,21 +32,21 @@ describe('solve', () => {
   });
 
   it('base edit without locks changes only that field', () => {
-    expect(ok(solve(DEFAULTS, { key: 'reach', value: 400 }, locks()))).toEqual({ ...DEFAULTS, reach: 400 });
+    expect(ok(solve(ROAD, { key: 'reach', value: 400 }, locks()))).toEqual({ ...ROAD, reach: 400 });
   });
 
   it('total length edit reaches the target', () => {
-    const b = ok(solve(DEFAULTS, { key: 'totalLength', value: 1700 }, locks()));
+    const b = ok(solve(ROAD, { key: 'totalLength', value: 1700 }, locks()));
     expect(derived(b).totalLength).toBeCloseTo(1700, 6);
   });
 
   it('chainstay angle edit reaches the target', () => {
-    const b = ok(solve(DEFAULTS, { key: 'chainstayAngle', value: 8 }, locks()));
+    const b = ok(solve(ROAD, { key: 'chainstayAngle', value: 8 }, locks()));
     expect(derived(b).chainstayAngle).toBeCloseTo(8, 5);
   });
 
   it('derived edit reaches the target, unrelated params stay', () => {
-    const b = ok(solve(DEFAULTS, { key: 'trail', value: 60 }, locks()));
+    const b = ok(solve(ROAD, { key: 'trail', value: 60 }, locks()));
     expect(derived(b).trail).toBeCloseTo(60, 6);
     expect(b.stack).toBeCloseTo(560, 6);
     expect(b.reach).toBeCloseTo(385, 6);
@@ -53,7 +54,7 @@ describe('solve', () => {
   });
 
   it('leaves params the targets do not depend on exactly untouched', () => {
-    const b = ok(solve(DEFAULTS, { key: 'headAngle', value: 70 }, locks('trail')));
+    const b = ok(solve(ROAD, { key: 'headAngle', value: 70 }, locks('trail')));
     expect(b.stack).toBe(560);
     expect(b.bbDrop).toBe(70);
     expect(b.reach).toBe(385);
@@ -61,7 +62,7 @@ describe('solve', () => {
   });
 
   it('locked trail survives head angle edit; offset compensates', () => {
-    const b = ok(solve(DEFAULTS, { key: 'headAngle', value: 72 }, locks('trail')));
+    const b = ok(solve(ROAD, { key: 'headAngle', value: 72 }, locks('trail')));
     const a = (72 * Math.PI) / 180;
     expect(b.headAngle).toBe(72);
     expect(derived(b).trail).toBeCloseTo(T0.trail, 6);
@@ -69,44 +70,44 @@ describe('solve', () => {
   });
 
   it('locked wheelbase survives reach edit', () => {
-    const b = ok(solve(DEFAULTS, { key: 'reach', value: 400 }, locks('wheelbase')));
+    const b = ok(solve(ROAD, { key: 'reach', value: 400 }, locks('wheelbase')));
     expect(b.reach).toBe(400);
     expect(derived(b).wheelbase).toBeCloseTo(T0.wheelbase, 6);
   });
 
   it('non-solvable edit keeps locked trail', () => {
-    const b = ok(solve(DEFAULTS, { key: 'rimFront', value: 584 }, locks('trail')));
+    const b = ok(solve(ROAD, { key: 'rimFront', value: 584 }, locks('trail')));
     expect(b.rimFront).toBe(584);
     expect(derived(b).trail).toBeCloseTo(T0.trail, 6);
     expect(b.forkOffset).not.toBeCloseTo(45, 1);
   });
 
   it('overconstrained when every solvable param is locked', () => {
-    expect(solve(DEFAULTS, { key: 'trail', value: 60 }, new Set(SOLVABLE))).toEqual({ ok: false, error: 'overconstrained' });
+    expect(solve(ROAD, { key: 'trail', value: 60 }, new Set(SOLVABLE))).toEqual({ ok: false, error: 'overconstrained' });
   });
 
   it('unreachable when only chainstay is free and wheelbase < frontCenter', () => {
     const l = new Set<FieldKey>(SOLVABLE.filter((k) => k !== 'chainstay'));
-    expect(solve(DEFAULTS, { key: 'wheelbase', value: 500 }, l)).toEqual({ ok: false, error: 'unreachable' });
+    expect(solve(ROAD, { key: 'wheelbase', value: 500 }, l)).toEqual({ ok: false, error: 'unreachable' });
   });
 
   it('invalid for an impossible head angle', () => {
-    expect(solve(DEFAULTS, { key: 'headAngle', value: 95 }, locks())).toEqual({ ok: false, error: 'invalid' });
+    expect(solve(ROAD, { key: 'headAngle', value: 95 }, locks())).toEqual({ ok: false, error: 'invalid' });
   });
 
   it('invalid for a negative fork length target', () => {
-    expect(solve(DEFAULTS, { key: 'forkLength', value: -50 }, locks('trail'))).toEqual({ ok: false, error: 'invalid' });
+    expect(solve(ROAD, { key: 'forkLength', value: -50 }, locks('trail'))).toEqual({ ok: false, error: 'invalid' });
   });
 
   it('does not mutate the input', () => {
-    const before = { ...DEFAULTS };
-    solve(DEFAULTS, { key: 'trail', value: 60 }, locks('wheelbase'));
-    expect(DEFAULTS).toEqual(before);
+    const before = { ...ROAD };
+    solve(ROAD, { key: 'trail', value: 60 }, locks('wheelbase'));
+    expect(ROAD).toEqual(before);
   });
 
   it('solves well under 50 ms', () => {
     const t = performance.now();
-    solve(DEFAULTS, { key: 'trail', value: 60 }, locks('wheelbase', 'stack'));
+    solve(ROAD, { key: 'trail', value: 60 }, locks('wheelbase', 'stack'));
     expect(performance.now() - t).toBeLessThan(50);
   });
 });

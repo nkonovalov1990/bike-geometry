@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULTS, points, type Base } from './geometry';
+import { points, type Base } from './geometry';
+import { ROAD } from './testing';
 import { BAR_LIMITS, BAR_PRESETS, BAR_STYLES, DEFAULT_COCKPIT, buildModel, pitchRadius, type Cockpit, type Part } from './model3d';
 
 const get = <K extends Part['kind']>(m: Part[], id: string) => m.find((p) => p.id === id) as Extract<Part, { kind: K }>;
 
 describe('buildModel', () => {
-  const m = buildModel(DEFAULTS);
-  const p = points(DEFAULTS);
+  const m = buildModel(ROAD);
+  const p = points(ROAD);
 
   it('wheels sit on the axles with radii from the base params', () => {
     const f = get<'wheel'>(m, 'frontWheel'), r = get<'wheel'>(m, 'rearWheel');
@@ -29,7 +30,7 @@ describe('buildModel', () => {
   });
 
   it('saddle height follows the rider inseam along the seat line', () => {
-    const top = get<'saddle'>(buildModel(DEFAULTS, { height: 178 }), 'saddle').top;
+    const top = get<'saddle'>(buildModel(ROAD, { height: 178 }), 'saddle').top;
     expect(Math.hypot(top[0], top[1])).toBeCloseTo(0.883 * 836.6, 6);
     expect((Math.atan2(top[1], -top[0]) * 180) / Math.PI).toBeCloseTo(73.5, 9);
     const def = get<'saddle'>(m, 'saddle').top;
@@ -54,9 +55,9 @@ describe('buildModel', () => {
   });
 
   it.each<[string, Base]>([
-    ['default', DEFAULTS],
-    ['mullet', { ...DEFAULTS, rimRear: 584 }],
-    ['20 inch', { ...DEFAULTS, rimFront: 406, rimRear: 406, tireFront: 45, tireRear: 45 }],
+    ['default', ROAD],
+    ['mullet', { ...ROAD, rimRear: 584 }],
+    ['20 inch', { ...ROAD, rimFront: 406, rimRear: 406, tireFront: 45, tireRear: 45 }],
   ])('%s: unique ids, all numbers finite', (_, b) => {
     const parts = buildModel(b, { height: 178 });
     expect(new Set(parts.map((x) => x.id)).size).toBe(parts.length);
@@ -65,10 +66,10 @@ describe('buildModel', () => {
   });
 
   describe('cockpit', () => {
-    const a = (DEFAULTS.headAngle * Math.PI) / 180;
+    const a = (ROAD.headAngle * Math.PI) / 180;
     const up = [-Math.cos(a), Math.sin(a)];
     const at = (k: number) => [p.htTop.x + up[0]! * k, p.htTop.y + up[1]! * k];
-    const bar = (c: Partial<Cockpit>) => buildModel(DEFAULTS, undefined, { ...DEFAULT_COCKPIT, ...(c.bar && { dims: BAR_PRESETS[c.bar] }), ...c });
+    const bar = (c: Partial<Cockpit>) => buildModel(ROAD, undefined, { ...DEFAULT_COCKPIT, ...(c.bar && { dims: BAR_PRESETS[c.bar] }), ...c });
 
     it.each([0, 20, 45])('spacers %i: stem clamp is spacers+20 above the head tube, steerer ends at spacers+40', (spacers) => {
       const parts = bar({ spacers });
@@ -94,7 +95,7 @@ describe('buildModel', () => {
     it.each<[number, number]>([[100, -6], [120, 10]])('stem length %i, angle %i: end = clamp + length * (cos, sin)', (stemLength, stemAngle) => {
       const parts = bar({ stemLength, stemAngle });
       const [c, e] = get<'tube'>(parts, 'stem').path as [number, number, number][];
-      const th = ((90 - DEFAULTS.headAngle + stemAngle) * Math.PI) / 180;
+      const th = ((90 - ROAD.headAngle + stemAngle) * Math.PI) / 180;
       expect(e[0] - c![0]).toBeCloseTo(stemLength * Math.cos(th), 6);
       expect(e[1] - c![1]).toBeCloseTo(stemLength * Math.sin(th), 6);
       expect(get<'bar'>(parts, 'bar').center).toEqual(e);
