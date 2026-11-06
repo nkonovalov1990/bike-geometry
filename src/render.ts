@@ -76,3 +76,53 @@ export function render(svg: SVGSVGElement, b: Base, warn: ReadonlySet<FieldKey> 
   ].join('');
   for (const el of svg.querySelectorAll<SVGElement>('[data-key]')) el.classList.toggle('warn', warn.has(el.dataset.key as FieldKey));
 }
+
+export type Shape = { line: [Pt, Pt] } | { circle: [Pt, number] };
+/** What a field measures on the drawing: the segment (or circle) to light up while it is hovered or focused. */
+export function segments(b: Base, k: FieldKey): Shape[] {
+  const p = points(b);
+  const g = (x: number): Pt => ({ x, y: p.groundY });
+  const L = (a: Pt, c: Pt): Shape => ({ line: [a, c] });
+  const u = { x: Math.cos((b.headAngle * Math.PI) / 180), y: -Math.sin((b.headAngle * Math.PI) / 180) };
+  const t = (p.frontAxle.x - p.htTop.x) * u.x + (p.frontAxle.y - p.htTop.y) * u.y;
+  const foot = { x: p.htTop.x + t * u.x, y: p.htTop.y + t * u.y }; // front axle projected on the steering axis
+  const mid = { x: (p.seatTop.x + p.htTop.x) / 2, y: (p.seatTop.y + p.htTop.y) / 2 };
+  const map: Record<FieldKey, Shape[]> = {
+    stack: [L({ x: p.htTop.x, y: 0 }, p.htTop)],
+    reach: [L({ x: 0, y: p.htTop.y }, p.htTop)],
+    headAngle: [L(p.htTop, p.axisGround)],
+    seatAngle: [L(p.bb, p.seatTop)],
+    headTube: [L(p.htTop, p.htBottom)],
+    chainstay: [L(p.rearAxle, p.bb)],
+    bbDrop: [L(p.rearAxle, { x: 0, y: p.rearAxle.y }), L({ x: 0, y: p.rearAxle.y }, p.bb)],
+    forkOffset: [L(foot, p.frontAxle)],
+    lowerStack: [L(p.htBottom, p.crown)],
+    seatTube: [L(p.bb, p.seatTop)],
+    rimFront: [{ circle: [p.frontAxle, b.rimFront / 2] }],
+    rimRear: [{ circle: [p.rearAxle, b.rimRear / 2] }],
+    tireFront: [{ circle: [p.frontAxle, p.frontRadius] }],
+    tireRear: [{ circle: [p.rearAxle, p.rearRadius] }],
+    forkLength: [L(p.crown, foot)],
+    trail: [L(p.axisGround, g(p.frontAxle.x))],
+    wheelbase: [L(g(p.rearAxle.x), g(p.frontAxle.x))],
+    totalLength: [L(g(p.rearAxle.x - p.rearRadius), g(p.frontAxle.x + p.frontRadius))],
+    frontCenter: [L(p.bb, p.frontAxle)],
+    bbHeight: [L(g(0), p.bb)],
+    chainstayAngle: [L(p.rearAxle, p.bb)],
+    effectiveTopTube: [L({ x: -p.htTop.y / Math.tan((b.seatAngle * Math.PI) / 180), y: p.htTop.y }, p.htTop)],
+    topTubeAngle: [L(p.seatTop, p.htTop)],
+    standover: [L(g(mid.x), mid)],
+  };
+  return map[k];
+}
+
+/** Draws (or clears, with null) the highlight for a field on an already rendered drawing. */
+export function highlight(svg: SVGSVGElement, b: Base, k: FieldKey | null): void {
+  svg.querySelector('.hl')?.remove();
+  svg.classList.toggle('focus', !!k);
+  for (const el of svg.querySelectorAll<SVGElement>('[data-key]')) el.classList.toggle('on', el.dataset.key === k);
+  if (!k) return;
+  const dot = (q: Pt) => `<circle class="pt" cx="${f(q.x)}" cy="${f(-q.y)}" r="9"/>`;
+  const svgOf = (s: Shape) => ('line' in s ? line(s.line[0], s.line[1], '') + s.line.map(dot).join('') : `<circle cx="${f(s.circle[0].x)}" cy="${f(-s.circle[0].y)}" r="${f(s.circle[1])}"/>`);
+  svg.insertAdjacentHTML('beforeend', `<g class="hl" aria-hidden="true">${segments(b, k).map(svgOf).join('')}</g>`);
+}

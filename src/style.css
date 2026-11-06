@@ -39,7 +39,7 @@
 
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 system-ui, sans-serif; }
-.app { display: grid; grid-template-columns: 400px 1fr; gap: 16px; padding: 16px; min-height: 100vh; align-items: start; }
+.app { display: grid; grid-template-columns: 400px 1fr 320px; gap: 16px; padding: 16px; min-height: 100vh; align-items: start; }
 .fields { display: grid; gap: 12px; }
 fieldset { margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
 legend { font-weight: 600; padding: 0 4px; }
@@ -85,6 +85,29 @@ legend { font-weight: 600; padding: 0 4px; }
 .dim-label.warn { fill: var(--warn); }
 .tip .issue { color: var(--warn); font-weight: 600; margin: 0 0 4px; }
 .tip .for { color: var(--ink-2); }
+.hl line, .hl circle { stroke: var(--accent); stroke-width: 14; stroke-opacity: 0.55; fill: none; }
+.hl circle { stroke-width: 10; }
+.hl .pt { fill: var(--accent); fill-opacity: 0.9; stroke: none; }
+.drawing.focus .tube, .drawing.focus .fork, .drawing.focus .dim { opacity: 0.35; }
+.dim-label.on { fill: var(--accent); }
+.fields .row:hover, .fields .row:focus-within { background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 4px; }
+.character { padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.character h2 { margin: 0 0 8px; font-size: 15px; }
+.character .tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 6px; }
+.character .tags b { padding: 2px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); font-weight: 500; }
+.character .scale { margin: 12px 0 0; cursor: default; }
+.character .head { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; }
+.character .head span { font-weight: 400; color: var(--ink-2); }
+.character .track { position: relative; height: 10px; margin: 6px 0 2px; border-radius: 5px; background: linear-gradient(90deg, color-mix(in srgb, var(--frame) 35%, transparent), color-mix(in srgb, var(--accent) 35%, transparent)); }
+.character .arch { position: absolute; top: 1px; width: 8px; height: 8px; margin-left: -4px; border: 1px solid var(--ink-2); border-radius: 50%; background: var(--panel); }
+.character .arch.near { border: 2px solid var(--ink); }
+.character .mark { position: absolute; top: -5px; width: 4px; height: 20px; margin-left: -2px; border-radius: 2px; background: var(--ink); }
+.character .ends { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--ink-2); }
+.character .why { margin: 2px 0 0; font-size: 12px; color: var(--ink-2); }
+.character .warnline { color: var(--warn); font-weight: 600; }
+@media (max-width: 1300px) {
+  .app { grid-template-columns: 400px 1fr; }
+}
 @media (max-width: 760px) {
   .app { grid-template-columns: 1fr; }
   .dim text { font-size: 48px; stroke-width: 8px; }

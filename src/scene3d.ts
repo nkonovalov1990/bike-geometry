@@ -421,7 +421,9 @@ function buildFlatBar(p: Of<'bar'>, c: Ctx, g: THREE.Group) {
     const zb = hw - gripLen - 20, [bx, by] = at(zb);
     const body = mesh(c.geos.get('levBody', () => new RoundedBoxGeometry(34, 26, 26, 3, 6)), c.mats.metal);
     body.position.set(bx + 10, by - 6, s * zb);
-    const lever = new THREE.CatmullRomCurve3([new THREE.Vector3(bx + 24, by - 12, s * zb), new THREE.Vector3(bx + 70, by - 18, s * zb), new THREE.Vector3(bx + 100, by - 36, s * zb)]);
+    // Blade leaves the perch forward, then runs outboard ~30 mm ahead of the grip (follows backsweep), tip curled back.
+    const ahead = (z: number, dx: number, dy: number) => { const [x, y] = at(z); return new THREE.Vector3(x + dx, y + dy, s * z); };
+    const lever = new THREE.CatmullRomCurve3([ahead(zb, 24, -8), ahead(zb + 15, 32, -10), ahead(zb + 60, 32, -12), ahead(zb + 100, 30, -12), ahead(zb + 112, 22, -12)]);
     const blade = mesh(c.geos.get(null, () => taperedTube(lever, (u) => 5 - 2 * u, 40, 10)), c.mats.metal);
     const zp = zb - 38, [sx, sy] = at(zp);
     const pod = mesh(c.geos.get('shiftPod', () => new RoundedBoxGeometry(38, 24, 30, 3, 6)), c.mats.dark);

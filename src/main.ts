@@ -3,7 +3,8 @@ import { ANGLE_KEYS, BASE_KEYS, DERIVED_KEYS, RIM_SIZES, field, type FieldKey } 
 import { conflicts, riderFrom } from './fit';
 import { helpHtml } from './help';
 import { BAR_LIMITS, BAR_PRESETS, BAR_STYLES, COCKPIT_LIMITS, DEFAULT_COCKPIT, buildModel, type BarDims, type BarStyle, type Cockpit, type Part } from './model3d';
-import { render } from './render';
+import { ARCHETYPES, metrics, nearest, scalePos, toeClearance, type Archetype, type Metric } from './character';
+import { highlight, render } from './render';
 import { solve, type SolveError } from './solver';
 import { decode, encode } from './url';
 
@@ -86,10 +87,42 @@ function group(title: string, keys: readonly FieldKey[]) {
       for (const r of rows.values()) r.error.textContent = '';
       update();
     });
+    row.addEventListener('mouseenter', () => showHighlight((hovered = key)));
+    row.addEventListener('mouseleave', () => showHighlight((hovered = null)));
+    row.addEventListener('focusin', () => showHighlight((focused = key)));
+    row.addEventListener('focusout', () => showHighlight((focused = null)));
     fs.append(row);
   }
   form.append(fs);
 }
+
+// The segment a field measures lights up on the drawing while its row (or a character scale) is hovered or focused.
+let hovered: FieldKey | null = null;
+let focused: FieldKey | null = null;
+const showHighlight = (_?: unknown) => highlight(svg, state.base, hovered ?? focused);
+
+const character = document.querySelector<HTMLElement>('#character')!;
+const fmt0 = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 0 });
+function scale(m: Metric, near: Archetype): string {
+  const dots = ARCHETYPES.map((a) => `<i class="arch${a === near ? ' near' : ''}" title="${a.name}" style="left:${scalePos(m, a.v[m.key]) * 100}%"></i>`).join('');
+  return `<div class="scale" data-field="${m.field}"><div class="head">${m.title} <span>${m.shown}</span></div>
+    <div class="track">${dots}<i class="mark" style="left:${scalePos(m, m.value) * 100}%"></i></div>
+    <div class="ends"><span>${m.left}</span><span>${m.right}</span></div><p class="why">${m.why}</p></div>`;
+}
+function drawCharacter() {
+  const ms = metrics(state.base);
+  const [n1, n2] = nearest(ms);
+  const toe = toeClearance(state.base);
+  character.innerHTML = `<h2>Ride character</h2>
+    <p class="tags">Похоже на: <b>${n1!.name}</b><b>${n2!.name}</b></p>
+    <p class="why${toe < 0 ? ' warnline' : ''}">${toe < 0 ? `Носок может задеть переднее колесо в повороте (≈${fmt0(-toe)} мм)` : `Запас от носка до переднего колеса ≈${fmt0(toe)} мм`}</p>
+    ${ms.map((m) => scale(m, n1!)).join('')}`;
+}
+character.addEventListener('mouseover', (e) => {
+  const k = ((e.target as Element).closest<HTMLElement>('[data-field]')?.dataset.field ?? null) as FieldKey | null;
+  if (k !== hovered) showHighlight((hovered = k));
+});
+character.addEventListener('mouseleave', () => showHighlight((hovered = null)));
 
 function edit(key: FieldKey, value: number) {
   const result = Number.isFinite(value) ? solve(state.base, { key, value }, state.locks) : ({ ok: false, error: 'nan' } as const);
@@ -110,6 +143,8 @@ function update() {
     r.tip.innerHTML = helpHtml(key, state.rider, issues.get(key));
   }
   render(svg, state.base, new Set(issues.keys()));
+  showHighlight();
+  drawCharacter();
   if (state.view === '3d') scene?.update(model());
   history.replaceState(null, '', encode(state));
 }
